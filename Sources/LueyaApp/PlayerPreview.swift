@@ -11,6 +11,8 @@ struct PlayerPreview: View {
     @State private var probeTrackID = ""
     @State private var openHovered = false
     @State private var checkHovered = false
+    @State private var contentRevealed = false
+    @State private var heroBreathing = false
 
     private let ink = Color(red: 0.26, green: 0.23, blue: 0.21)
     private let secondary = Color(red: 0.47, green: 0.43, blue: 0.40)
@@ -27,6 +29,8 @@ struct PlayerPreview: View {
 
             hero
                 .padding(.top, 24)
+                .opacity(contentRevealed || reduceMotion ? 1 : 0)
+                .offset(y: contentRevealed || reduceMotion ? 0 : 7)
 
             divider
                 .padding(.vertical, 23)
@@ -48,6 +52,16 @@ struct PlayerPreview: View {
         .environment(\.colorScheme, .light)
         .tint(accent)
         .task { await signIn.restoreIfNeeded() }
+        .onAppear(perform: startMotion)
+        .onDisappear(perform: stopMotion)
+        .onChange(of: reduceMotion) { _, enabled in
+            if enabled {
+                stopMotion()
+                contentRevealed = true
+            } else {
+                startMotion()
+            }
+        }
     }
 
     private var header: some View {
@@ -91,13 +105,15 @@ struct PlayerPreview: View {
                     }
 
                 Circle()
-                    .fill(accent.opacity(0.09))
-                    .blur(radius: 15)
+                    .fill(accent.opacity(heroBreathing && !reduceMotion ? 0.16 : 0.09))
+                    .blur(radius: heroBreathing && !reduceMotion ? 19 : 13)
                     .frame(width: 70, height: 70)
+                    .scaleEffect(heroBreathing && !reduceMotion ? 1.09 : 0.95)
 
                 Circle()
-                    .strokeBorder(accent.opacity(0.28), lineWidth: 1)
+                    .strokeBorder(accent.opacity(heroBreathing && !reduceMotion ? 0.38 : 0.24), lineWidth: 1)
                     .frame(width: 72, height: 72)
+                    .scaleEffect(heroBreathing && !reduceMotion ? 1.06 : 0.96)
 
                 Circle()
                     .fill(.white.opacity(0.42))
@@ -106,6 +122,7 @@ struct PlayerPreview: View {
                 Image(systemName: "waveform")
                     .font(.system(size: 24, weight: .ultraLight))
                     .foregroundStyle(accent)
+                    .scaleEffect(heroBreathing && !reduceMotion ? 1.06 : 0.96)
             }
             .frame(width: 96, height: 96)
             .accessibilityHidden(true)
@@ -157,11 +174,15 @@ struct PlayerPreview: View {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
                         .strokeBorder(rim.opacity(0.95), lineWidth: 1)
                 }
-                .scaleEffect(openHovered && !reduceMotion ? 1.008 : 1)
+                .scaleEffect(openHovered && !reduceMotion ? 1.016 : 1)
+                .offset(y: openHovered && !reduceMotion ? -1 : 0)
             }
             .buttonStyle(.plain)
             .onHover { openHovered = $0 }
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: openHovered)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.82),
+                value: openHovered
+            )
             .accessibilityHint("Opens the official Yandex Music website in your default browser")
         }
     }
@@ -175,6 +196,10 @@ struct PlayerPreview: View {
 
             accountControls
         }
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 0.25),
+            value: sourcePhase
+        )
     }
 
     @ViewBuilder
@@ -260,7 +285,12 @@ struct PlayerPreview: View {
                     .buttonStyle(.plain)
                     .disabled(probeTrackID.isEmpty)
                     .onHover { checkHovered = $0 }
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: checkHovered)
+                    .scaleEffect(checkHovered && !reduceMotion ? 1.035 : 1)
+                    .offset(y: checkHovered && !reduceMotion ? -1 : 0)
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.8),
+                        value: checkHovered
+                    )
                     .accessibilityHint("Checks streaming source availability without playing audio")
                 }
 
@@ -302,6 +332,39 @@ struct PlayerPreview: View {
         case .failed(let message):
             stateLabel(message, icon: "info.circle")
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var sourcePhase: Int {
+        switch signIn.sourceProbe {
+        case .idle: 0
+        case .checking: 1
+        case .verified: 2
+        case .failed: 3
+        }
+    }
+
+    private func startMotion() {
+        guard !reduceMotion else {
+            contentRevealed = true
+            return
+        }
+
+        // One entrance, then a quiet, low-frequency pulse while the panel is visible.
+        withAnimation(.easeOut(duration: 0.46)) {
+            contentRevealed = true
+        }
+        withAnimation(.easeInOut(duration: 3.7).repeatForever(autoreverses: true)) {
+            heroBreathing = true
+        }
+    }
+
+    private func stopMotion() {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            heroBreathing = false
+            contentRevealed = false
         }
     }
 
