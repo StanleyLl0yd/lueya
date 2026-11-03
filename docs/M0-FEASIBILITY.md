@@ -26,7 +26,7 @@ Status: OPEN — 2026-11-03. No full Yandex Music playback integration is approv
 | Option | Authority | Implementation | Current conclusion |
 | --- | --- | --- | --- |
 | Open official website | Public URL | lueya native menu bar | Available; playback remains outside app |
-| Official shared-track embed | Yandex Wiki Share → HTML | Separate opt-in WKWebView diagnostic | Technically implementable; actual playback and conditions require real-device test |
+| Official shared-track embed | Yandex Wiki Share → HTML | Separate opt-in WKWebView diagnostic | On-device audio starts but stops at ~15–20 seconds; complete playback and service restrictions unverified |
 | Full website within WKWebView | Generic WebKit API, no explicit service authorization established | Not implemented | Needs permission/terms and compatibility review |
 | Native Yandex streaming/Ynison | Unofficial community reverse engineering, no public licensed Music playback API established | Not implemented | Not authorized for project at present |
 | Yandex ID OAuth | Official identity scopes | Not implemented | Doesn't solve Music playback rights |
@@ -43,11 +43,17 @@ tracks a separate `LueyaEmbedProbe` app. It:
   the regular lueya app keeps its network entitlement disabled.
 - Does not request login, capture passwords or extract cookies/tokens.
 - Adds no injection, site scripts, custom stream extraction or DRM bypass.
-- Rejects navigation away from the known official embed origin/path.
+- Rejects **top-level** navigation away from the known official embed origin/path. WebKit subframes and provider-managed subresources are not globally restricted.
 - Does not save a music catalog, account details, or audio to disk.
 
 This limited technical study does not establish broad rights to
 distribute a Yandex Music client or modify the Yandex player.
+
+## On-device user report — 2026-11-03
+
+The released `lueya-embed-probe.app` loaded an apparently arbitrary track and produced audible playback for approximately **15–20 seconds**, then stopped on a real Mac. Track identity, expected duration, exact OS version, network region, subscription/account state, and the failure/preview UI were not reported. This is **PARTIAL PASS** for basic WebKit audio, **not** proof of full-length playback or rights to integrate with the user's Music account. A provider preview limit is a hypothesis, not a verified cause. See [issue #6](https://github.com/StanleyLl0yd/lueya/issues/6#issuecomment-6614721015).
+
+A [full tracked-tree pre-acceptance audit](M0-REPOSITORY-AUDIT-2026-11-03.md) is documented, with remediation and final verification still pending. No M0 acceptance or M1 transition is authorized.
 
 ## M0 remaining gate
 
@@ -59,6 +65,6 @@ distribute a Yandex Music client or modify the Yandex player.
 - [ ] Assess whether permitted capabilities meet the app's core goals.
 - [ ] Prove native playback with a permitted integration or explicitly
       record a no-go/blocker.
-- [ ] Complete repository-wide code, privacy, security and dependency audit.
+- [ ] Resolve documented repository-wide pre-acceptance audit findings and perform final exact-head verification.
 
 M0 remains OPEN; this is not legal clearance.
