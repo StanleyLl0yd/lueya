@@ -17,20 +17,22 @@ is required to download and test the app.
 runs on macOS 26 and Xcode 27:
 
 ```bash
-swift build --configuration release
+swift build --configuration release --product LueyaApp -Xswiftc -Osize -Xlinker -dead_strip
 swift test --parallel
 ./scripts/package-app.sh
-./scripts/package-app.sh embed-probe
 ```
 
-Each generated bundle is verified for executable, arm64 architecture,
-macOS 26 minimum, and ad-hoc code signature. Xcode 27 produces
-independent ZIPs using `ditto`, and each is extracted and verified
-again before upload as an unwrapped GitHub Actions artifact.
+The arm64 executable is size-optimized, dead-stripped, and stripped of
+unneeded symbols before code signing. Both runners check the signature,
+arm64 architecture, minimum macOS and sandbox. The Xcode 27 job also
+extracts the ZIP and re-verifies the signed bundle before uploading.
 
-On protected `main` after both platform jobs succeed, the pipeline
-publishes a versioned **prerelease** with the app ZIP and SHA-256 checksum.
-Existing tags are never overwritten.
+On protected `main`, after both platform jobs pass, the workflow
+publishes an immutable regular Semantic Versioning Release with
+`lueya-<version>-macos-arm64.zip` and `SHA256SUMS.txt`. Future DMGs
+must be named `lueya-<version>-macos-arm64.dmg`.
+Both README files must contain the direct URL for their release version.
+Existing tags and assets are never overwritten.
 
 See [Testing](TESTING.md) and [M0 feasibility](M0-FEASIBILITY.md).
 
