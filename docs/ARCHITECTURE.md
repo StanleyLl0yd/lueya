@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M0 authenticated API feasibility. Device Flow and raw stream source lookup have synthetic CI coverage; on-device verification and actual playback remain open.
+Status: v0.1.0 early-access release; M0 remains OPEN. A user has confirmed account sign-in on a Mac, but in-app full-length audio and provider permissions remain unverified.
 
 ## Platform and toolchain
 
@@ -16,14 +16,14 @@ Status: M0 authenticated API feasibility. Device Flow and raw stream source look
 - `PlayerPreview`: non-playing warm-glass interface
 - `LueyaCore`: site validators, isolated Music account/OAuth/session clients and local Keychain, plus typed `YandexMusicStreamProvider` raw-source negotiation with strict CDN guards (#17)
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
-- `scripts/package-app.sh`: locally ad-hoc-signed app bundle
+- `scripts/package-app.sh`: size-optimized arm64 app, stripped before ad-hoc signing
 - XCTest suite and two-runner macOS native CI
 
 There is NO audio playback, custom player, queue, library, search or
 media-key control yet. The menu-bar UI supports experimental user-owned
-OAuth sign-in and an optional **non-playing** raw-source check. OAuth,
-account status and media source lookup have synthetic CI tests only;
-all require verification on a physical Mac. The main App Sandbox
+OAuth sign-in and an optional **non-playing** raw-source check. OAuth, account status and source lookup have synthetic CI tests.
+Real sign-in has been reported on a user's Mac; source retrieval is unverified.
+v0.1.0 separates previously ambiguous error categories. The main App Sandbox
 allows outbound OAuth and Music API calls.
 
 ## Boundaries after feasibility

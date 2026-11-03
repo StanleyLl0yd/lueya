@@ -69,6 +69,7 @@ public enum MusicStreamError: Error, Equatable, Sendable {
     case invalidResponse
     case invalidPayload
     case unavailable
+    case metadataUnavailable
     case unsupportedEncryptedTransport
     case unsupportedCodec
     case untrustedMediaURL
@@ -99,15 +100,15 @@ public protocol MusicProvider: Sendable {
     func resolveTrack(id: String, accessToken: String) async throws -> ResolvedTrack
 }
 
-/// Experimental adapter for a documented but unofficial provider interface.
+/// Experimental adapter for an unofficial provider interface.
 /// No media bytes, OAuth headers or cookies are downloaded or cached here.
 public struct YandexMusicStreamProvider: MusicProvider {
     private static let apiOrigin = "api.music.yandex.net"
     private static let trackURL = URL(string: "https://api.music.yandex.net/tracks")!
     private static let fileInfoURL = URL(string: "https://api.music.yandex.net/get-file-info")!
 
-    // Identifiers published in the upstream community client, NOT lueya keys.
-    // Can change or be revoked by the service.
+    // Public identifiers for an unofficial provider interface; not issued to lueya.
+    // The service can change or revoke them without notice.
     private static let desktopClient = "YandexMusicDesktopAppWindows/5.95.0"
     private static let publicSigningKey = "kzqU4XhfCaY6B6JTHODeq5"
     private static let requestedCodecs = ["flac-mp4", "aac-mp4", "mp3"]
@@ -129,7 +130,7 @@ public struct YandexMusicStreamProvider: MusicProvider {
         try Task.checkCancellation()
 
         let track = try await trackMetadata(id: trackID, accessToken: accessToken)
-        guard track.available else { throw MusicStreamError.unavailable }
+        guard track.available else { throw MusicStreamError.metadataUnavailable }
 
         let source = try await resolveSource(id: trackID, accessToken: accessToken)
         return ResolvedTrack(metadata: track, source: source)

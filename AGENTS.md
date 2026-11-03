@@ -13,6 +13,8 @@
 - Prefer Apple frameworks; any third-party library requires documented
   need, license/security review, maintenance evaluation and approval.
 - Target zero external dependencies; optimize memory, CPU and launch.
+- Package arm64 only using measured size optimization, linker dead stripping and
+  stripping nonessential symbols before signing.
 - Respect accessibility and reduced-motion preferences.
 
 ## Development
@@ -28,7 +30,13 @@
 - Preserve behavior; avoid unnecessary churn and abstractions.
 - Code and code comments are in English.
 - Build/test on both supported macOS versions when available.
-- Do not claim a visual shell is a working music player.
+- Do not claim a visual shell or a metadata/source check is a working player.
+- From v0.1.0 follow Semantic Versioning. Publish immutable permanent GitHub
+  Release assets only after both protected-main macOS CI jobs pass.
+- Every distributed ZIP and future DMG filename must contain the exact version:
+  `lueya-<version>-macos-arm64.zip` and `lueya-<version>-macos-arm64.dmg`.
+  Link directly to the versioned asset; update both READMEs for every release.
+- Maintain concise bilingual `README.md` and `README.ru.md` with mutual links.
 - Never add placebo CI, fake tests or unverified release artifacts.
 - Prove lawful external integrations before committing to an engine.
 

@@ -143,8 +143,12 @@ final class MusicSignInModel {
             return "Enter a numeric Yandex Music track ID."
         case .invalidToken, .unauthorized:
             return "Music session expired. Please sign in again."
-        case .forbidden, .unavailable:
-            return "This track is unavailable for this account or region."
+        case .metadataUnavailable:
+            return "The provider marks this track unavailable in its metadata."
+        case .forbidden:
+            return "The provider denied this track request (HTTP 403)."
+        case .unavailable:
+            return "No compatible raw audio source was returned for this track."
         case .unsupportedEncryptedTransport:
             return "The service supplied only unsupported encrypted media."
         case .unsupportedCodec:

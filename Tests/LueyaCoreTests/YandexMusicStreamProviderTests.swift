@@ -93,7 +93,7 @@ final class YandexMusicStreamProviderTests: XCTestCase {
         let transport = StubTransport(
             metadata: #"{"result":[{"id":117708948,"available":false}]}"#
         )
-        await expect(.unavailable, provider: makeProvider(transport: transport))
+        await expect(.metadataUnavailable, provider: makeProvider(transport: transport))
         let requests = await transport.requests()
         XCTAssertEqual(requests.count, 1)
     }
