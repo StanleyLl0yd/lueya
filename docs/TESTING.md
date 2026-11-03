@@ -1,70 +1,70 @@
-# Testing the lueya M0 preview
+# lueya M0 testing — Apple Silicon macOS 26/27
 
-**This build is a native UI prototype, not a music player.**
+**Development and builds remain on GitHub.** To test, download
+only the built application ZIP(s), not the source code.
 
-## Requirements
+## Download and verify
 
-- Mac with Apple Silicon (arm64)
-- macOS 26 or macOS 27
-- No Xcode, local source checkout or local Git repository required
+Open [v0.0.2 M0 research prerelease](https://github.com/StanleyLl0yd/lueya/releases/tag/v0.0.2-m0-embed.1).
+Get the ZIP you need and the accompanying `SHA256SUMS.txt`:
 
-## Download from GitHub
+- `lueya-macos-arm64-m0-preview.zip` — existing native menu-bar shell
+- `lueya-embed-probe-macos-arm64-m0.zip` — standalone embed test
 
-Open the [M0 testing prerelease](https://github.com/StanleyLl0yd/lueya/releases/tag/v0.0.1-m0-preview.1)
-and download the two assets:
-
-- `lueya-macos-arm64-m0-preview.zip`
-- `SHA256SUMS.txt`
-
-On macOS, with both files in the same folder:
+Put the ZIPs and checksum file into the same folder. To verify a
+downloaded ZIP without downloading the other one:
 
 ```bash
-shasum -a 256 -c SHA256SUMS.txt
+shasum -a 256 lueya-embed-probe-macos-arm64-m0.zip
 ```
 
-The result must say `OK`. If it does not, do not open the app.
+Compare its output with the matching line in `SHA256SUMS.txt`.
+If both ZIPs are present, `shasum -a 256 -c SHA256SUMS.txt`
+checks both. Refuse any mismatch.
 
-Unzip the file in Finder and launch `lueya.app`. The app lives in the
-menu bar (waveform icon), **not** the Dock. Only the downloaded app
-needs to exist on your Mac for testing; development and compilation
-stay exclusively in GitHub.
+## Launch
 
-## macOS Gatekeeper
+Unzip either file and open the contained `.app` on an arm64 Mac
+running macOS 26 or 27. No Xcode, developer checkout or compilation
+is required.
 
-This M0 preview has an **ad-hoc code signature**, not a trusted
-Developer ID signature, and has **not been notarized**. Gatekeeper
-may prevent it from launching. Do not disable Gatekeeper or install
-untrusted profiles. After verifying the GitHub source and SHA-256
-checksum, you may use the macOS System Settings > Privacy & Security
-**Open Anyway** option, if your system offers it. Otherwise, report
-the block; a future notarized build will remove this limitation.
+**Important:** These builds are ad-hoc signed, not Apple Developer ID
+notarized. Gatekeeper may block them. Do not disable Gatekeeper.
+After independent checksum/source verification, System Settings
+→ Privacy & Security may offer **Open Anyway**. If not, report
+the block for a notarized build.
 
-## Manual test checklist
+## Menu-bar app checklist
 
-- [ ] The app launches without a Dock window.
-- [ ] A waveform icon appears in the menu bar.
-- [ ] Clicking the icon opens a compact, legible warm-glass popover.
-- [ ] The content is not clipped at default display scaling.
-- [ ] Text and buttons remain usable in light and dark system modes.
-- [ ] Keyboard navigation / VoiceOver can reach the button and Quit.
-- [ ] **Open official Yandex Music** launches the official site in
-      the default browser; lueya never asks for account passwords.
-- [ ] **Quit lueya** terminates the process and clears the menu icon.
-- [ ] The app can be reopened without crashing.
+- [ ] Launches with only a menu bar icon (no Dock window)
+- [ ] Clicking it shows the compact lueya preview
+- [ ] UI is legible at current resolution and system appearance
+- [ ] Opens official Yandex Music website in default browser
+- [ ] Quit works and relaunches
 
-Do not expect: playback, login, track metadata, search, library,
-media keys or My Wave. These features have not been implemented.
+## Standalone official shared-track embed checklist
 
-Record your macOS version, Apple Silicon model, scaling settings,
-the step that failed, and any screenshots in
-[the M0 issue](https://github.com/StanleyLl0yd/lueya/issues/1).
+The probe is **not** the eventual player UI.
 
-## Build provenance
+- [ ] Launches as a separate standard window, before network access
+- [ ] Shows a Load button and network-off notice
+- [ ] Clicking Load displays Yandex's published embed, or a clear
+      network/region/provider error (record which)
+- [ ] User-initiated Play on the embedded player produces audio, if
+      available in the selected region — **report outcome**
+- [ ] No Yandex password is requested by lueya
+- [ ] No external browser/account access occurs unexpectedly
+- [ ] Closing and reopening does not retain a sign-in session
+- [ ] The main lueya menu bar app remains unaffected
 
-The GitHub Actions [Native Swift validation](https://github.com/StanleyLl0yd/lueya/actions/workflows/swift.yml)
-workflow runs actual build, XCTest, code-signature and architecture
-checks on macOS 26 and 27 before publishing the test prerelease.
-The release tag points to the exact tested `main` commit.
+Log failures, OS version, network/region, and screenshots **without
+personal details or auth tokens** in
+[M0 embed issue #6](https://github.com/StanleyLl0yd/lueya/issues/6).
 
-This is not a production release and is not signed for general
-macOS distribution.
+## Not yet supported
+
+My Wave, personalized tracks, search, history, media keys,
+music-service login or a native streaming engine.
+
+This prerelease is an experimental research artifact, not a release
+candidate. Both macOS CI jobs must pass before publication.

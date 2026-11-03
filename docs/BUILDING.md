@@ -1,65 +1,52 @@
-# Building lueya
+# Building lueya through GitHub
 
-## Toolchain
+All canonical sources, code reviews, builds, test logs, and preview
+artifacts live on GitHub. No local Xcode, source clone or Git repository
+is required to download and test the app.
 
-- macOS 26 or 27 on Apple Silicon
-- Latest stable compatible Xcode; Swift 6 language mode
-- Swift Package Manager (bundled with Xcode)
-- No third-party packages or generators
+## Toolchain and compatibility
 
-The Package.swift Swift tools minimum is 6.2 to build with both
-Xcode 26.6 and Xcode 27.1; the installed compiler is used.
+- Apple Silicon (arm64), macOS 26 deployment minimum, macOS 27 target
+- Latest compatible stable Xcode and Swift 6 language mode
+- SwiftPM tools floor 6.2 for cross-Xcode compatibility
+- Zero third-party package dependencies
 
-## Cloud builds and test distribution
+## Build and test workflow
 
-CI performs release-mode compilation, XCTest, code signing and app
-packaging on GitHub-hosted macOS runners. The Xcode 27 job preserves
-a valid app bundle as a ZIP and uploads it to GitHub Actions.
-The ZIP has a macOS 26 deployment target and is compiled with
-our newest supported stable compiler.
-After **both** macOS 26 and macOS 27 checks succeed on `main`,
-the workflow publishes a clearly marked M0 prerelease for testing.
-No local source clone or local Xcode build is required for testers.
-
-See [Testing](TESTING.md) for the prebuilt app download and checks.
-
-## Optional local developer build
+[Native Swift validation](https://github.com/StanleyLl0yd/lueya/actions/workflows/swift.yml)
+runs on macOS 26 and Xcode 27:
 
 ```bash
-xcodebuild -version
-swift --version
-swift test
+swift build --configuration release
+swift test --parallel
 ./scripts/package-app.sh
-open dist/lueya.app
+./scripts/package-app.sh embed-probe
 ```
 
-Look for the waveform icon in the macOS menu bar, not the Dock.
-Use **Quit lueya** in the menu to stop the application.
+Each generated bundle is verified for executable, arm64 architecture,
+macOS 26 minimum, and ad-hoc code signature. Xcode 27 produces
+independent ZIPs using `ditto`, and each is extracted and verified
+again before upload as an unwrapped GitHub Actions artifact.
 
-The local app receives an ad-hoc code signature. It is neither
-notarized nor ready for public redistribution.
+On protected `main` after both platform jobs succeed, the pipeline
+publishes a **prerelease** with ZIP files and SHA-256 checksums.
+Existing tags are never overwritten.
 
-## Platform
+See [Testing](TESTING.md) and [M0 feasibility](M0-FEASIBILITY.md).
 
-- macOS 26 minimum; macOS 27 target
-- Apple Silicon arm64
-- Xcode stable toolchain with Swift 6 mode
-- macOS 27-only APIs require runtime availability checks and a
-  functional macOS 26 fallback.
+## Sandbox and privacy
 
-## CI
+The main lueya app is an offline UI shell. A separate probe app
+has the minimum outbound network permission for one official embedded
+track and uses WebKit nonpersistent memory-only website data.
+No Yandex tokens, files or website cache are intentionally persisted.
 
-CI builds, runs XCTest, packages the app, checks Info.plist,
-verifies an arm64 Mach-O binary, and validates the local signature
-on macOS 26 and the Xcode 27 (macOS 27) runner.
+These builds are **ad-hoc signed and not notarized**, so they may
+be rejected by Gatekeeper and are not suitable for public distribution.
+A future Developer ID signing/notarization process remains required.
 
-The Xcode 27 runner has been generally available since 2026-10-15.
-CI does not substitute for interactive manual smoke tests on both OS releases.
-For this project, GitHub Actions is the authoritative build and
-binary distribution channel. Local builds are optional diagnostics only.
+## Local developer diagnosis (optional)
 
-## Current limitations
-
-This M0 preview displays a non-playing menu-bar interface and
-opens the provider's official website externally. It has no
-in-app authentication, track control, media engine or library.
+For developers who choose to work locally, the commands above produce
+`dist/lueya.app` and `dist/lueya-embed-probe.app`. The project does
+**not** require this local workflow from users or testers.

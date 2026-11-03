@@ -1,31 +1,36 @@
-# lueya — M0 Native UI Preview
+# lueya v0.0.2 — M0 native preview + official shared-track experiment
 
-**Early test build only. This is NOT a working Yandex Music player.**
+**Developer test build only. Not a working Yandex Music client.**
 
-This Apple Silicon/macOS 26–27 preview demonstrates:
+The download contains **two independent applications**:
 
-- A real native SwiftUI menu-bar application with a compact,
-  warm-glass interface.
-- An external button opening the official Yandex Music website
-  in the default browser.
-- A Quit control and basic accessible labels.
+- `lueya.app` — the unchanged native SwiftUI menu-bar interface,
+  with a link opening the official music website in your browser.
+- `lueya-embed-probe.app` — a standalone research-only WKWebView
+  experiment that loads one **officially documented** Yandex Music
+  shared-track embed, **only after a user clicks Load**. It does
+  not authenticate, load a private API or control other Yandex tracks.
 
-**Not implemented:** in-app playback, Yandex account login,
-search, metadata, queue, library, media keys, or My Wave.
+The embed app has an ephemeral (nonpersistent) WebKit data store,
+separate sandbox and outbound network permission. The main lueya
+app remains offline and has no network entitlement.
 
-The build is produced by GitHub Actions on **Xcode 27**, after Swift
-compilation, XCTest and arm64 validation on **macOS 26 and 27**.
-Its deployment target remains macOS 26.
-It contains no third-party Swift dependencies.
+**Unknown until manual test:** whether the published example can
+actually play sound on your OS/region. Success is not asserted.
 
-Assets:
-- `lueya-macos-arm64-m0-preview.zip` — native test app bundle.
-- `SHA256SUMS.txt` — integrity checksum for the ZIP.
+**Not implemented:** Yandex Music account, My Wave, native track
+controls, queue, recommendations, search, likes or offline music.
 
-The app is **ad-hoc signed and not notarized**. macOS Gatekeeper may
-refuse to open it. Do not disable Gatekeeper. See
-[Testing instructions](https://github.com/StanleyLl0yd/lueya/blob/main/docs/TESTING.md)
-for checksum verification and manual test expectations.
+Each ZIP is built and verified by GitHub Actions using Xcode 27,
+with compilation/XCTest and bundle checks passing on macOS 26 and 27.
+There are no third-party Swift packages, ads or app-owned telemetry.
 
-Independent and unofficial; not affiliated with Yandex.
-This is a proprietary All Rights Reserved project.
+Assets: `lueya-macos-arm64-m0-preview.zip`,
+`lueya-embed-probe-macos-arm64-m0.zip`, and `SHA256SUMS.txt`.
+
+These applications are ad-hoc signed, **not notarized**. Gatekeeper
+may block them. Never disable system protections. See
+[Testing](https://github.com/StanleyLl0yd/lueya/blob/main/docs/TESTING.md).
+
+Independent and unofficial; no affiliation with or endorsement
+by Yandex. Proprietary All Rights Reserved project.
