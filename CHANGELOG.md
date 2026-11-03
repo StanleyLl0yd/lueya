@@ -3,6 +3,16 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.2.0
+
+Warm matte-glass menu-bar redesign: cream/champagne palette, airier
+spacing, native translucent material, subtle hover motion and
+accessibility fallbacks for Reduce Motion and Reduce Transparency.
+Bottom-left version label now reads the signed application's bundle
+version. A quality-specific HTTP 403 can fall back to the next lower
+requested raw format, with regression tests and without decrypting
+protected media. Real playback remains unimplemented.
+
 ## v0.1.1
 
 Correctly identify which request stage the music service denied:
