@@ -197,7 +197,7 @@ final class YandexMusicStreamProviderTests: XCTestCase {
         XCTAssertEqual(requests.count, 4)
     }
 
-    func test403AtHQDoesNotRetryUnauthorizedNQ() async {
+    func testQualityFallbackStopsOn401AtNQ() async {
         let transport = StubTransport(
             statusForQuality: ["lossless": 403, "hq": 403, "nq": 401]
         )
