@@ -5,6 +5,7 @@ public actor YandexMusicSession {
     private let api: YandexMusicAPIClient
     private let store: any OAuthTokenStoring
     private var tokens: OAuthTokens?
+    private var sessionGeneration: UInt64 = 0
 
     public init(
         oauth: YandexOAuthClient = YandexOAuthClient(),
@@ -21,6 +22,7 @@ public actor YandexMusicSession {
     }
 
     public func completeSignIn(code: OAuthDeviceCode) async throws -> MusicAccountStatus {
+        let generation = sessionGeneration
         let obtained = try await oauth.awaitAuthorization(code)
         try Task.checkCancellation()
 
@@ -30,6 +32,7 @@ public actor YandexMusicSession {
             throw MusicAPIError.unauthorized
         }
         try Task.checkCancellation()
+        guard sessionGeneration == generation else { throw CancellationError() }
 
         try store.save(obtained)
         tokens = obtained
@@ -38,8 +41,10 @@ public actor YandexMusicSession {
 
     public func restoreAccount() async throws -> MusicAccountStatus? {
         guard let stored = try store.load() else { return nil }
-        let (active, account) = try await validatedAccount(using: stored)
+        let generation = sessionGeneration
+        let (active, account) = try await validatedAccount(using: stored, generation: generation)
         try Task.checkCancellation()
+        guard sessionGeneration == generation else { throw CancellationError() }
         tokens = active
         return account
     }
@@ -56,8 +61,10 @@ public actor YandexMusicSession {
             guard current.refreshToken != nil else {
                 throw YandexOAuthError.expired
             }
+            let generation = sessionGeneration
             let updated = try await oauth.refresh(current)
             try Task.checkCancellation()
+            guard sessionGeneration == generation else { throw CancellationError() }
             try store.save(updated)
             tokens = updated
             return updated.accessToken
@@ -68,11 +75,13 @@ public actor YandexMusicSession {
 
     public func signOut() throws {
         try store.delete()
+        sessionGeneration &+= 1
         tokens = nil
     }
 
     private func validatedAccount(
-        using initial: OAuthTokens
+        using initial: OAuthTokens,
+        generation: UInt64
     ) async throws -> (OAuthTokens, MusicAccountStatus) {
         var current = initial
         if current.needsRefresh() {
@@ -98,6 +107,7 @@ public actor YandexMusicSession {
         if current.accessToken != initial.accessToken ||
             current.refreshToken != initial.refreshToken {
             try Task.checkCancellation()
+            guard sessionGeneration == generation else { throw CancellationError() }
             try store.save(current)
         }
 
