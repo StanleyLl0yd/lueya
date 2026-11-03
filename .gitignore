@@ -1,0 +1,58 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100/
+.Trashes/
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+*.xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.app/
+*.dSYM/
+*.dSYM.zip
+*.xcarchive/
+*.xcresult/
+*.dmg
+*.pkg
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# Local settings
+.env
+.env.*
+!.env.example
+.secrets/
+Secrets.xcconfig
+Local.xcconfig
+*.private.xcconfig
+
+# Credentials and signing
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.key
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.log
+*.tmp
