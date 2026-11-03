@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### OAuth research (PR #15, pending)
+
+- Native Swift Device Flow with user-confirmed Yandex login
+- Per-device, non-synchronizing Keychain token store and session restoration
+- Isolated auth and session actor with synthetic request/response tests
+- Compact sign-in controls preserving the existing warm-glass UI
+- Outbound network sandbox entitlement for the main app's authenticated API
+- Immutable 0.0.3 auth research test ZIP and release notes
+- Online streaming only is a fixed product requirement; no offline mode
+
 ### Changed
 
 - Retired anonymous shared-track playback testing in favor of API-first M0 (#13)
