@@ -3,62 +3,58 @@
 ## M0 — Feasibility (OPEN)
 
 - [x] Define native macOS 26/27 and latest-stable toolchain policy
-- [x] Implement isolated SwiftUI menu bar prototype without secrets
-- [x] Record initial provider terms and integration constraints
-- [ ] Verify authorized authentication approaches
-- [ ] Prove a permitted playback integration in a live prototype
-- [ ] Compare WebKit/native playback and session behavior
-- [ ] Confirm technical go/no-go and architecture decision
-- [ ] Perform full repository-wide milestone audit and verification
+- [x] Implement isolated SwiftUI menu bar preview without secrets
+- [x] Establish GitHub-only build/test/artifact and release process
+- [x] Research provider terms and official shared-track embed support
+- [x] Implement standalone opt-in official embed diagnostic (#6)
+- [ ] Verify actual shared-track playback and limitations on macOS 26/27
+- [ ] Establish permitted full Music account/playback integration
+- [ ] Compare WebKit vs native end-to-end playback with evidence
+- [ ] Confirm go/no-go for full product and architecture decision
+- [ ] Perform full repository-wide audit and verification
 
-Exit gate: reproducible, permitted integration or documented blocker.
-A visual menu bar shell does not complete M0.
+M0 exits only with a reproducible permitted music integration
+or a documented blocker. An official single-track embed is only
+partial technical evidence, not full personalized playback.
 
 ## M1 — Native foundation
 
-- [ ] Establish permanent signed Xcode app target
-- [ ] Finalize app lifecycle and menu bar behaviors
-- [ ] Implement floating mini-player
-- [ ] Implement appearance and accessibility settings
-- [ ] Expand manual verification and stable CI on macOS 26/27
+- [ ] Establish permanent Developer ID-signed Xcode app target
+- [ ] Finalize menu bar lifecycle, windowing and appearance
+- [ ] Implement floating mini-player and accessibility settings
+- [ ] Expand manual tests on macOS 26/27
 
-Exit gate: functioning, verified native app shell.
+Exit: tested, functional, stable native app foundation.
 
 ## M2 — Core music experience
 
-- [ ] Implement approved playback integration
-- [ ] Play/pause/next/previous, track metadata and artwork
-- [ ] Native media keys and Now Playing
-- [ ] Search, library and My Wave where permitted
-- [ ] Session expiration, network error and recovery handling
+- [ ] Implement authorized provider integration
+- [ ] Play/pause/next/previous, metadata, artwork, media keys
+- [ ] Search, library and My Wave where supported and permitted
+- [ ] Session expiration, errors, recovery
 
-Exit gate: end-to-end reliable, permitted music playback.
+Exit: reproducible permitted end-to-end music playback.
 
 ## M3 — Zen experience
 
-- [ ] Zen mode, artwork ambience and floating controls
-- [ ] Global shortcuts and accessibility/motion support
-- [ ] Startup, RAM and CPU optimization
+- [ ] Zen mode and artwork-driven native ambiance
+- [ ] Floating controls, shortcuts and accessibility
+- [ ] CPU, memory and launch optimization
 
-Exit gate: tested polished experience.
+Exit: fully polished tested experience.
 
 ## M4 — Release readiness
 
-- [ ] Full regressions on macOS 26 and 27
-- [ ] Privacy/security and dependency license review
-- [ ] Trademark and naming clearance
-- [ ] Developer ID signing/notarization
-- [ ] Release packaging and documentation
+- [ ] Full regressions on macOS 26/27
+- [ ] Privacy/security/dependency and license review
+- [ ] Trademark clearance for lueya
+- [ ] Developer ID signing and notarization
+- [ ] Packaging and distribution documentation
 
-Exit gate: approved release candidate.
+Exit: approved release candidate.
 
 ## Mandatory milestone gate
 
-After EVERY milestone:
-1. Complete repository-wide code/security/dependency audit.
-2. Complete architecture/maintainability review.
-3. Apply justified fixes and refactoring.
-4. Run regression tests and manual smoke tests.
-5. Record findings, blockers and acceptance decision.
-
-Never substitute a diff-only audit for a full repository review.
+Every milestone requires full repository-wide code, security,
+dependency, architecture and refactoring audits (not only changed
+files), actual regression verification and explicit acceptance.

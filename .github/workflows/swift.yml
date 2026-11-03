@@ -31,35 +31,53 @@ jobs:
         run: swift build --configuration release
       - name: Test
         run: swift test --parallel
-      - name: Package local app
-        run: ./scripts/package-app.sh
-      - name: Verify bundle and architecture
+      - name: Package main app and isolated diagnostic probe
         run: |
-          test -x dist/lueya.app/Contents/MacOS/LueyaApp
-          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' dist/lueya.app/Contents/Info.plist)" = "26.0"
-          /usr/bin/lipo -archs dist/lueya.app/Contents/MacOS/LueyaApp | grep -qw arm64
-          /usr/bin/codesign --verify --strict dist/lueya.app
+          ./scripts/package-app.sh
+          ./scripts/package-app.sh embed-probe
+      - name: Verify app bundles and architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pair in "lueya:LueyaApp" "lueya-embed-probe:LueyaEmbedProbe"; do
+            app="${pair%%:*}"
+            executable="${pair#*:}"
+            test -x "dist/$app.app/Contents/MacOS/$executable"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "dist/$app.app/Contents/Info.plist")" = "26.0"
+            /usr/bin/lipo -archs "dist/$app.app/Contents/MacOS/$executable" | grep -qw arm64
+            /usr/bin/codesign --verify --strict "dist/$app.app"
+          done
       - name: Create and verify downloadable macOS app ZIP
         if: matrix.os == 'xcode-27'
         shell: bash
         run: |
           set -euo pipefail
-          archive='dist/lueya-macos-arm64-m0-preview.zip'
-          /usr/bin/ditto -c -k --sequesterRsrc --keepParent dist/lueya.app "$archive"
-          scratch="$(mktemp -d)"
-          trap 'rm -rf "$scratch"' EXIT
-          /usr/bin/ditto -x -k "$archive" "$scratch"
-          test -x "$scratch/lueya.app/Contents/MacOS/LueyaApp"
-          /usr/bin/codesign --verify --strict "$scratch/lueya.app"
-          /usr/bin/lipo -archs "$scratch/lueya.app/Contents/MacOS/LueyaApp" | grep -qw arm64
-          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$scratch/lueya.app/Contents/Info.plist")" = '26.0'
-          shasum -a 256 "$archive"
+          for pair in "lueya:LueyaApp:lueya-macos-arm64-m0-preview.zip" "lueya-embed-probe:LueyaEmbedProbe:lueya-embed-probe-macos-arm64-m0.zip"; do
+            IFS=: read -r app executable archive <<< "$pair"
+            /usr/bin/ditto -c -k --sequesterRsrc --keepParent "dist/$app.app" "dist/$archive"
+            scratch="$(mktemp -d)"
+            /usr/bin/ditto -x -k "dist/$archive" "$scratch"
+            test -x "$scratch/$app.app/Contents/MacOS/$executable"
+            /usr/bin/codesign --verify --strict "$scratch/$app.app"
+            /usr/bin/lipo -archs "$scratch/$app.app/Contents/MacOS/$executable" | grep -qw arm64
+            test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$scratch/$app.app/Contents/Info.plist")" = '26.0'
+            shasum -a 256 "dist/$archive"
+            rm -rf "$scratch"
+          done
       - name: Upload signed preview ZIP to GitHub Actions
         if: matrix.os == 'xcode-27'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           archive: false
           path: dist/lueya-macos-arm64-m0-preview.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload separate embed probe ZIP
+        if: matrix.os == 'xcode-27'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          archive: false
+          path: dist/lueya-embed-probe-macos-arm64-m0.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -80,32 +98,37 @@ jobs:
         with:
           name: lueya-macos-arm64-m0-preview.zip
           path: preview
-          # Upload was unwrapped; this archive must remain a file.
-          # Without this option v8 interprets application/zip as a
-          # compressed artifact and extracts lueya.app too early.
           skip-decompress: true
-      - name: Validate downloadable ZIP and generate SHA256SUMS
+      - name: Download separate embed probe ZIP
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: lueya-embed-probe-macos-arm64-m0.zip
+          path: preview
+          skip-decompress: true
+      - name: Validate both ZIP files and generate SHA256SUMS
         shell: bash
         run: |
           set -euo pipefail
           test -s preview/lueya-macos-arm64-m0-preview.zip
+          test -s preview/lueya-embed-probe-macos-arm64-m0.zip
           unzip -tq preview/lueya-macos-arm64-m0-preview.zip >/dev/null
-          (cd preview && sha256sum lueya-macos-arm64-m0-preview.zip > SHA256SUMS.txt)
+          unzip -tq preview/lueya-embed-probe-macos-arm64-m0.zip >/dev/null
+          (cd preview && sha256sum ./*.zip > SHA256SUMS.txt)
       - name: Publish clearly marked non-playing test build
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          tag='v0.0.1-m0-preview.1'
+          tag='v0.0.2-m0-embed.1'
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Release $tag already exists; not overwriting prior build"
             exit 0
           fi
           gh release create "$tag" \
-            preview/lueya-macos-arm64-m0-preview.zip preview/SHA256SUMS.txt \
+            preview/lueya-macos-arm64-m0-preview.zip preview/lueya-embed-probe-macos-arm64-m0.zip preview/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease --latest=false \
-            --title 'lueya 0.0.1 — M0 native preview (no playback)' \
+            --title 'lueya 0.0.2 — M0 official shared-track embed experiment' \
             --notes-file docs/PREVIEW-RELEASE-NOTES.md

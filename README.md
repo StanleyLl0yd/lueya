@@ -2,63 +2,66 @@
 
 **a softer way to listen.**
 
-A minimal, native warm-glass macOS music experience for Yandex Music.
+A minimal, native warm-glass macOS experience designed for Yandex Music.
 Independent and unofficial.
 
-> **M0 development preview only:** the menu-bar UI is native, but
-> in-app playback, login, search and library are NOT implemented.
+> **M0 research preview:** the regular menu-bar app is native but does
+> **not** yet play music. An **independent diagnostic app** tests
+> Yandex's officially documented shared-track embed. This is not
+> account login, My Wave, a library, or general music playback.
 
 ## Principles
 
 - Music first; almost invisible controls and soft ambient design.
 - Native SwiftUI and AppKit; not Electron, Tauri or Qt.
 - No application-owned analytics or advertisements.
-- Minimal dependencies (**zero third-party packages** today).
+- Zero third-party package dependencies today.
+- macOS 26 minimum, macOS 27 target; arm64 Apple Silicon.
 
-## Platform
+## Download from GitHub (no local development required)
 
-- **macOS 26 minimum; macOS 27 target**
-- **Apple Silicon / arm64**
-- Latest stable compatible Xcode, Swift and Apple SDK, Swift 6 mode
-- SwiftPM tools minimum 6.2 for Xcode 26/27 compatibility
+Test assets are built **entirely in GitHub Actions** and published on
+[Releases](https://github.com/StanleyLl0yd/lueya/releases).
+The latest M0 research build contains two separately zipped apps:
 
-## Download the M0 preview
+- **lueya.app** — unchanged menu-bar UI and external official-site link.
+- **lueya-embed-probe.app** — an opt-in diagnostic showing a single
+  officially documented embedded track, with ephemeral web storage.
 
-**No local source checkout or Xcode installation is necessary.**
-Development, macOS builds, tests, ZIP artifacts and the preview
-prerelease are hosted entirely on GitHub.
+No source checkout or Xcode install is necessary to test.
+See [Testing](docs/TESTING.md) for checksum, Gatekeeper and smoke tests.
 
-1. Open [M0 preview downloads](https://github.com/StanleyLl0yd/lueya/releases/tag/v0.0.1-m0-preview.1).
-2. Download `lueya-macos-arm64-m0-preview.zip` and `SHA256SUMS.txt`.
-3. Verify the checksum, unzip and launch `lueya.app` on Apple Silicon
-   macOS 26 or 27. See the [test instructions](docs/TESTING.md).
+The unsigned-for-distribution developer previews use ad-hoc signatures
+and are not notarized; Gatekeeper may block them. Do not disable it.
 
-The app appears in the menu bar and opens the official Yandex Music
-website in your browser. There is **no in-app audio playback** yet.
+## Technology
 
-The preview has a **local ad-hoc signature**, not a Developer ID
-signature or notarization. macOS Gatekeeper may block opening it;
-this build is strictly for explicit developer testing.
+Swift 6, SwiftUI, AppKit, WebKit (probe only), SwiftPM.
+The main application has no network entitlement. The isolated
+probe requires outbound network access to retrieve the official embed
+**after explicit user action**; it saves no account credentials.
 
-See [Building](docs/BUILDING.md), [Architecture](docs/ARCHITECTURE.md),
-[M0 feasibility](docs/M0-FEASIBILITY.md), and [Roadmap](docs/ROADMAP.md).
+## Planned (not implemented)
 
-## Planned, not implemented
+A full audio player, My Wave, library, search, playback history,
+media keys and keyboard control require an authorized provider
+integration and actual playback proof on macOS 26/27.
 
-Menu-bar mini-player, Zen mode, floating view, global hotkeys,
-media controls, search, library, dynamic artwork and My Wave
-where supported by a technically and legally permitted integration.
+See [M0 feasibility](docs/M0-FEASIBILITY.md),
+[Architecture](docs/ARCHITECTURE.md),
+[Roadmap](docs/ROADMAP.md), and
+[Building](docs/BUILDING.md).
 
 ## Development and security
 
-Every completed milestone requires a whole-repository code/security
-audit, refactoring assessment and regression verification.
-Never commit provider credentials, cookies or signing keys.
+Every completed milestone requires a full repository-wide
+audit and refactoring review, not just a diff review.
+Do not commit credentials, cookies, signing keys or media.
 
 lueya is not affiliated with, endorsed by or sponsored by Yandex.
 Yandex Music and related trademarks belong to their owners.
 
-## Proprietary license
+## License
 
-Copyright © 2026. All rights reserved.
-Not open source. See [LICENSE](LICENSE).
+Copyright © 2026. All rights reserved. Proprietary, not open source.
+See [LICENSE](LICENSE).
