@@ -7,10 +7,12 @@
 | Surface | What is established | What is not established |
 | --- | --- | --- |
 | Official Yandex Music terms | User authorization is normally required for access to protected tracks. | A subscription or Yandex ID login does **not**, by itself, grant third-party application distribution or streaming API permission. |
-| Yandex ID OAuth | Developers can register their own OAuth clients and request service-specific scopes. | A Music-specific streaming scope available to independent macOS clients has not been identified in official public documentation. |
+| Yandex ID OAuth | Developers can register general OAuth clients and request documented service scopes. | The community Music API token guide specifically states that a **custom Music-capable OAuth app cannot be created**. An official independent macOS Music streaming scope has not been found; treat this as a serious provider-access blocker, not as an established universal prohibition. |
 | Official music-artist Partner API | The documented Partner API serves Bandlink smartlinks using `api.band.link`. | It is **not** a consumer playback SDK. |
 | MarshalX `yandex-music-api` 3.2.2 (2026-10-11) | Unofficial community-maintained reverse-engineered interface, about 150 documented OpenAPI methods covering account, search, playlists, radio, My Wave and device/queue synchronization via Ynison. Documents 30-second anonymous preview limits and device-code OAuth. | It is **not** an official Yandex Music SDK or proof that independent apps are licensed to play protected tracks. Upstream `device_auth` may use Yandex's embedded Android application client ID by default; lueya must **not reuse another app's client identity**. |
 | Native macOS | `URLSession` can make HTTP requests; `AVPlayer` can play provider-permitted media URLs. | Neither supplies a Music account permission, a licensed audio URL, a working session or My Wave on its own. |
+
+Community auth caveat: [MarshalX token guide](https://ym.marshal.dev/token/) states that a custom Music OAuth app cannot be created, despite the general Yandex ID OAuth registration process. Never package the official Yandex Music Android or web application's client ID into lueya, or instruct the user to extract tokens from other apps.
 
 Sources: [Music terms](https://yandex.ru/legal/music_termsofuse/ru), [Yandex ID OAuth](https://yandex.ru/dev/id/doc/ru/register-api), [Yandex artist Partner API](https://yandex.com/support/music-artists/ru/performers-and-copyright-holders/partners-api), [unofficial implementation](https://github.com/MarshalX/yandex-music-api), [unofficial OpenAPI 3.2.2](https://ym.marshal.dev/api/openapi.json).
 
@@ -32,7 +34,7 @@ Sources: [Music terms](https://yandex.ru/legal/music_termsofuse/ru), [Yandex ID 
 
 ## M0 go/no-go gate
 
-1. Establish a permitted lueya-owned OAuth client flow with Music-specific read/playback scope (or obtain express provider permission).
+1. Obtain a definitive provider-approved authorization path with Music-specific read/playback scope or written permission. Current community guidance says independent Music-capable OAuth registration is unavailable; do not assume Yandex ID app registration solves it.
 2. Test authenticated status/metadata using a real user's own account **only on a physical Mac** with explicit consent and no credential sharing.
 3. Prove lawful full-track audio (not a 30-second preview), session renewal, pause, seek, queue and My Wave where permitted.
 4. Confirm macOS 26 + 27 compatibility, error/revocation and region behavior; keep secrets local.
