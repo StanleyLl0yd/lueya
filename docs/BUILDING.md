@@ -40,8 +40,8 @@ CI builds, runs XCTest, packages the app, checks Info.plist,
 verifies an arm64 Mach-O binary, and validates the local signature
 on macOS 26 and the Xcode 27 (macOS 27) runner.
 
-The Xcode 27 runner may be in preview. CI does not substitute for
-interactive manual smoke tests on both macOS releases.
+The Xcode 27 runner has been generally available since 2026-10-15.
+CI does not substitute for interactive manual smoke tests on both OS releases.
 
 ## Current limitations
 

@@ -19,7 +19,7 @@ cp "$bin_dir/LueyaApp" "$app/Contents/MacOS/LueyaApp"
 chmod 755 "$app/Contents/MacOS/LueyaApp"
 
 /usr/bin/plutil -lint "$app/Contents/Info.plist"
-/usr/bin/codesign --force --sign - "$app"
+/usr/bin/codesign --force --sign - --entitlements "$root/App/Lueya.entitlements" "$app"
 
 printf 'Packaged: %s\n' "$app"
 printf '%s\n' "Local ad-hoc signature only; not notarized or distribution-ready."
