@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 — API-first feasibility (OPEN)
+## M0 — API-first feasibility (OPEN; v0.1.0 is an early release, not M0 acceptance)
 
 - [x] Establish native macOS 26/27 SwiftUI menu-bar shell and GitHub-only CI
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
@@ -11,7 +11,7 @@
 - [ ] Record official provider/terms and distribution limitations of the **unofficial** authentication and streaming interface
 - [ ] Confirm login and account status on a physical Mac with a user-owned subscription
 - [x] Implement typed raw source negotiation with mocked transport, HMAC signature and CDN allowlist (#17)
-- [ ] Validate live metadata and raw source through the optional on-device check (0.0.4 experimental build)
+- [ ] Repeat the check for track 99338938 on v0.1.0; distinguish metadata-unavailable, HTTP 403 and missing compatible raw stream
 - [ ] Prove full-length in-app streaming using the user's account and supported media formats (never offline)
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
