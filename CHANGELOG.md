@@ -5,7 +5,7 @@
 ### OAuth research (PR #15, pending)
 
 - Native Swift Device Flow with user-confirmed Yandex login
-- Per-device, non-synchronizing Keychain token store and session restoration
+- Local Keychain token store (Data Protection preferred; traditional fallback for ad-hoc signing) and session restoration
 - Isolated auth and session actor with synthetic request/response tests
 - Compact sign-in controls preserving the existing warm-glass UI
 - Outbound network sandbox entitlement for the main app's authenticated API
