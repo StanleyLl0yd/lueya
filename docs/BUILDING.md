@@ -29,17 +29,19 @@ independent ZIPs using `ditto`, and each is extracted and verified
 again before upload as an unwrapped GitHub Actions artifact.
 
 On protected `main` after both platform jobs succeed, the pipeline
-publishes a **prerelease** with ZIP files and SHA-256 checksums.
+publishes a versioned **prerelease** with the app ZIP and SHA-256 checksum.
 Existing tags are never overwritten.
 
 See [Testing](TESTING.md) and [M0 feasibility](M0-FEASIBILITY.md).
 
 ## Sandbox and privacy
 
-The main lueya app is an offline UI shell. A separate probe app
-has the minimum outbound network permission for one official embedded
-track and uses WebKit nonpersistent memory-only website data.
-No Yandex tokens, files or website cache are intentionally persisted.
+The main lueya app uses outbound HTTPS for experimental OAuth, account
+status and user-initiated raw media source lookup. User tokens remain
+in macOS Keychain, while API networking uses ephemeral sessions with
+cookies/caches disabled. Source lookup does not load or save audio.
+The separate historical WebKit probe is de-scoped. No provider media
+or secrets are committed to GitHub.
 
 These builds are **ad-hoc signed and not notarized**, so they may
 be rejected by Gatekeeper and are not suitable for public distribution.

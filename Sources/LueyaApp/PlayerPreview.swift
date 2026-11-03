@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PlayerPreview: View {
     let signIn: MusicSignInModel
+    @State private var probeTrackID = ""
 
     private let ivory = Color(red: 0.96, green: 0.91, blue: 0.85)
     private let muted = Color(red: 0.74, green: 0.70, blue: 0.70)
@@ -170,9 +171,46 @@ struct PlayerPreview: View {
                 Label("Signed in: \(account)", systemImage: "checkmark.circle")
                     .font(.system(size: 11))
                     .foregroundStyle(ivory)
-                Text("Music playback is not available in this M0 build.")
+                Text("Check a track's authorized raw source (no audio yet):")
                     .font(.system(size: 10))
                     .foregroundStyle(muted)
+                HStack(spacing: 8) {
+                    TextField("Numeric track ID", text: $probeTrackID)
+                        .font(.system(size: 11))
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel("Numeric Yandex Music track ID")
+                        .onSubmit { signIn.checkStreamSource(trackID: probeTrackID) }
+                    Button("Check") {
+                        signIn.checkStreamSource(trackID: probeTrackID)
+                    }
+                    .font(.system(size: 11))
+                    .disabled(probeTrackID.isEmpty)
+                    .accessibilityHint("Checks a raw streaming source without playing audio")
+                }
+
+                switch signIn.sourceProbe {
+                case .idle:
+                    EmptyView()
+                case .checking:
+                    Label("Checking source…", systemImage: "hourglass")
+                        .font(.system(size: 10))
+                        .foregroundStyle(muted)
+                case .verified(let title, let detail):
+                    Text(title)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(ivory)
+                        .lineLimit(2)
+                    Text(detail)
+                        .font(.system(size: 10))
+                        .foregroundStyle(muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .failed(let message):
+                    Label(message, systemImage: "exclamationmark.circle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Button("Sign out") { signIn.signOut() }
                     .font(.system(size: 11))
             case .failed(let message):
