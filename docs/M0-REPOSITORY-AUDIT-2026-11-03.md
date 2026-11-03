@@ -2,7 +2,7 @@
 
 **Base commit:** `4c47d2c62bd7141288c40ad9d67d516b5b6585a6` (PR #7 merged).
 
-**Scope:** Full tracked repository tree at that commit, **not a diff-only review**. Examined all 27 tracked files and their contents: root configuration/policy (`.editorconfig`, `.gitattributes`, `.gitignore`, `AGENTS.md`, `CHANGELOG.md`, `LICENSE`, `README.md`, `SECURITY.md`, `Package.swift`), App plists and entitlements, all Swift app/core/probe sources, both XCTest files, the entire GitHub workflow and PR template, packaging script, and all seven `docs/` files. Reviewed repository configuration, the branch/ruleset API read, and exact post-merge Actions run #41711659060. This report does **not** claim a local Xcode review/build or on-device macOS 26 and 27 coverage.
+**Scope:** Full tracked repository tree at that commit, **not a diff-only review**. Examined all 30 tracked files and their contents: root configuration/policy (`.editorconfig`, `.gitattributes`, `.gitignore`, `AGENTS.md`, `CHANGELOG.md`, `LICENSE`, `README.md`, `SECURITY.md`, `Package.swift`), App plists and entitlements, all Swift app/core/probe sources, both XCTest files, the entire GitHub workflow and PR template, packaging script, and all six `docs/` files. Reviewed repository configuration, the branch/ruleset API read, and exact post-merge Actions run #41711659060. This report does **not** claim a local Xcode review/build or on-device macOS 26 and 27 coverage.
 
 ## Verified baseline
 
