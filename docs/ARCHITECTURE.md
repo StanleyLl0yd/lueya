@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M0 native shell prototype, playback design unapproved.
+Status: M0 API-first research; native shell unchanged, playback and provider access unapproved.
 
 ## Platform and toolchain
 
@@ -14,20 +14,24 @@ Status: M0 native shell prototype, playback design unapproved.
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
 - `PlayerPreview`: non-playing warm-glass interface
-- `LueyaCore`: validated official website destination
+- `LueyaCore`: validated official website destination and isolated read-only `YandexMusicAPIClient` account-status HTTP prototype
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
 - `scripts/package-app.sh`: locally ad-hoc-signed app bundle
 - XCTest suite and two-runner macOS native CI
 
 There is NO audio playback, provider login, custom player,
-queue, library, search, or media-key control yet.
+queue, library, search, or media-key control yet. The new API client
+has **mock tests only**, is not connected to the app, and cannot use a
+Music account until a permitted authorization route is established.
 
 ## Boundaries after feasibility
 
 - App: lifecycle, menu bar, windows, preferences, global shortcuts
 - Presentation: mini-player, zen mode, search and library
 - Playback: testable abstraction, concrete engine only after M0
-- Provider: integration via supported, authorized capabilities only
+- Provider: native Swift `URLSession` adapter with fixed trusted origin,
+  ephemeral transport and redirect blocking; integration via supported,
+  authorized capabilities only
 - Persistence: UserDefaults for state; Keychain for secrets if needed
 
 ## Constraints
@@ -39,4 +43,5 @@ queue, library, search, or media-key control yet.
 - Keep accessibility, reduced motion and resource use in scope.
 - No dependencies without justification, licensing and security review.
 
-See [M0 feasibility](M0-FEASIBILITY.md) and [Building](BUILDING.md).
+See [API-first feasibility](M0-API-FEASIBILITY.md),
+[historical embed research](M0-FEASIBILITY.md) and [Building](BUILDING.md).
