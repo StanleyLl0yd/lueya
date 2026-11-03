@@ -28,8 +28,9 @@ project. These identifiers are not issued to lueya, can be revoked or blocked
 and **do not imply official provider permission or endorsement**.
 
 The app directs users to Yandex's own website and never asks for a password.
-Access/refresh tokens, if granted, are held only in a **device-only macOS
-Keychain** item. Sign out removes them. This feature has synthetic XCTest
+Access/refresh tokens, if granted, are held only in **local macOS Keychain** (Data Protection with a device-only
+accessibility class when signing permits; otherwise the traditional local
+Keychain for ad-hoc test builds). Sign out removes them. This feature has synthetic XCTest
 coverage but still needs physical-Mac acceptance with a real user-owned account.
 Do not post or email access tokens, refresh tokens or login screenshots.
 
