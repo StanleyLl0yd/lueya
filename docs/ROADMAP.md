@@ -1,21 +1,19 @@
 # Roadmap
 
-## M0 — Feasibility (OPEN)
+## M0 — API-first feasibility (OPEN)
 
-- [x] Define native macOS 26/27 and latest-stable toolchain policy
-- [x] Implement isolated SwiftUI menu bar preview without secrets
-- [x] Establish GitHub-only build/test/artifact and release process
-- [x] Research provider terms and official shared-track embed support
-- [x] Implement standalone opt-in official embed diagnostic (#6)
-- [ ] Verify actual shared-track playback and limitations on macOS 26/27
-- [ ] Establish permitted full Music account/playback integration
-- [ ] Compare WebKit vs native end-to-end playback with evidence
-- [ ] Confirm go/no-go for full product and architecture decision
-- [ ] Perform full repository-wide audit and verification
+- [x] Establish native macOS 26/27 SwiftUI menu-bar shell and GitHub-only CI
+- [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
+- [x] Identify official Yandex ID OAuth vs unofficial Music API/Ynison boundaries (#13)
+- [x] Implement isolated read-only native Swift Music HTTP transport with synthetic tests (not connected to main UI)
+- [ ] Establish a lueya-owned OAuth client with explicitly permitted Music scopes or provider permission
+- [ ] Prove authorized account status, metadata and full-length in-app playback on real Macs
+- [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
+- [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
 
-M0 exits only with a reproducible permitted music integration
-or a documented blocker. An official single-track embed is only
-partial technical evidence, not full personalized playback.
+M0 remains blocked on provider authorization and real end-to-end playback.
+A working unofficial endpoint or anonymous preview is not sufficient.
+See [API feasibility](M0-API-FEASIBILITY.md).
 
 ## M1 — Native foundation
 
