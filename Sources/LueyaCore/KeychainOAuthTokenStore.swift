@@ -13,6 +13,11 @@ public protocol OAuthTokenStoring: Sendable {
 }
 
 public struct KeychainOAuthTokenStore: OAuthTokenStoring {
+    private enum Backend {
+        case dataProtection
+        case traditional
+    }
+
     private let service: String
     private let account: String
 
@@ -25,41 +30,43 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
     }
 
     public func load() throws -> OAuthTokens? {
-        var query = itemQuery
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        query[kSecReturnData as String] = true
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess else {
+        let (status, data) = read(.dataProtection)
+        switch status {
+        case errSecSuccess:
+            return try decode(data)
+        case errSecItemNotFound, errSecMissingEntitlement:
+            // An ad-hoc development signature might not have an app-ID entitlement.
+            // The traditional login Keychain is still encrypted by macOS.
+            let (legacyStatus, legacyData) = read(.traditional)
+            switch legacyStatus {
+            case errSecSuccess:
+                return try decode(legacyData)
+            case errSecItemNotFound:
+                return nil
+            default:
+                throw TokenStorageError.keychainStatus(legacyStatus)
+            }
+        default:
             throw TokenStorageError.keychainStatus(status)
         }
-        guard let data = result as? Data,
-              let tokens = try? JSONDecoder().decode(OAuthTokens.self, from: data) else {
-            throw TokenStorageError.invalidStoredData
-        }
-        return tokens
     }
 
     public func save(_ tokens: OAuthTokens) throws {
         let data = try JSONEncoder().encode(tokens)
+        let status = upsert(data, backend: .dataProtection)
 
-        var attributes = itemQuery
-        attributes[kSecValueData as String] = data
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-
-        let status = SecItemAdd(attributes as CFDictionary, nil)
         switch status {
         case errSecSuccess:
-            return
-        case errSecDuplicateItem:
-            let updated = SecItemUpdate(
-                itemQuery as CFDictionary,
-                [kSecValueData as String: data] as CFDictionary
-            )
-            guard updated == errSecSuccess else {
-                throw TokenStorageError.keychainStatus(updated)
+            // Migrate from the legacy Keychain when a signed build later gains
+            // Data Protection access; leave the new item intact if migration fails.
+            let legacyStatus = SecItemDelete(query(.traditional) as CFDictionary)
+            guard legacyStatus == errSecSuccess || legacyStatus == errSecItemNotFound else {
+                throw TokenStorageError.keychainStatus(legacyStatus)
+            }
+        case errSecMissingEntitlement:
+            let legacyStatus = upsert(data, backend: .traditional)
+            guard legacyStatus == errSecSuccess else {
+                throw TokenStorageError.keychainStatus(legacyStatus)
             }
         default:
             throw TokenStorageError.keychainStatus(status)
@@ -67,18 +74,59 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
     }
 
     public func delete() throws {
-        let status = SecItemDelete(itemQuery as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw TokenStorageError.keychainStatus(status)
+        let primary = SecItemDelete(query(.dataProtection) as CFDictionary)
+        guard primary == errSecSuccess || primary == errSecItemNotFound ||
+                primary == errSecMissingEntitlement else {
+            throw TokenStorageError.keychainStatus(primary)
+        }
+
+        let traditional = SecItemDelete(query(.traditional) as CFDictionary)
+        guard traditional == errSecSuccess || traditional == errSecItemNotFound else {
+            throw TokenStorageError.keychainStatus(traditional)
         }
     }
 
-    private var itemQuery: [String: Any] {
-        [
+    private func read(_ backend: Backend) -> (OSStatus, Data?) {
+        var attributes = query(backend)
+        attributes[kSecReturnData as String] = true
+        attributes[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(attributes as CFDictionary, &result)
+        return (status, result as? Data)
+    }
+
+    private func upsert(_ data: Data, backend: Backend) -> OSStatus {
+        var attributes = query(backend)
+        attributes[kSecValueData as String] = data
+        if backend == .dataProtection {
+            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        }
+
+        let status = SecItemAdd(attributes as CFDictionary, nil)
+        guard status == errSecDuplicateItem else { return status }
+        return SecItemUpdate(
+            query(backend) as CFDictionary,
+            [kSecValueData as String: data] as CFDictionary
+        )
+    }
+
+    private func decode(_ data: Data?) throws -> OAuthTokens {
+        guard let data,
+              let tokens = try? JSONDecoder().decode(OAuthTokens.self, from: data) else {
+            throw TokenStorageError.invalidStoredData
+        }
+        return tokens
+    }
+
+    private func query(_ backend: Backend) -> [String: Any] {
+        var attributes: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecUseDataProtectionKeychain as String: true
+            kSecAttrAccount as String: account
         ]
+        if backend == .dataProtection {
+            attributes[kSecUseDataProtectionKeychain as String] = true
+        }
+        return attributes
     }
 }
