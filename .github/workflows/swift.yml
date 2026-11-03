@@ -1,0 +1,41 @@
+name: Native Swift validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Swift build and tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, xcode-27]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+      - name: Build
+        run: swift build --configuration release
+      - name: Test
+        run: swift test --parallel
+      - name: Package local app
+        run: ./scripts/package-app.sh
+      - name: Verify bundle and architecture
+        run: |
+          test -x dist/lueya.app/Contents/MacOS/LueyaApp
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' dist/lueya.app/Contents/Info.plist)" = "26.0"
+          /usr/bin/lipo -archs dist/lueya.app/Contents/MacOS/LueyaApp | grep -qw arm64
+          /usr/bin/codesign --verify --strict dist/lueya.app

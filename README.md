@@ -2,102 +2,59 @@
 
 **a softer way to listen.**
 
-A minimal, native macOS music player experience
-designed for Yandex Music.
+A minimal, native warm-glass macOS music experience for Yandex Music.
+Independent and unofficial.
 
-Warm glass. Quiet interaction. Music first.
+> **M0 development preview only:** the menu-bar UI is native, but
+> in-app playback, login, search and library are NOT implemented.
 
-> Project status: early development / feasibility.
+## Principles
 
-## Philosophy
+- Music first; almost invisible controls and soft ambient design.
+- Native SwiftUI and AppKit; not Electron, Tauri or Qt.
+- No application-owned analytics or advertisements.
+- Minimal dependencies (**zero third-party packages** today).
 
-lueya is designed around four principles:
+## Platform
 
-- **Music first.** The interface stays out of the way.
-- **Calm by default.** No unnecessary visual noise.
-- **Native by design.** SwiftUI and AppKit, not Electron.
-- **Private by nature.** No proprietary analytics
-  or advertising infrastructure.
+- **macOS 26 minimum; macOS 27 target**
+- **Apple Silicon / arm64**
+- Latest stable compatible Xcode, Swift and Apple SDK, Swift 6 mode
+- SwiftPM tools minimum 6.2 for Xcode 26/27 compatibility
 
-## Experience
+## Build the M0 preview
 
-The intended experience includes:
+On a supported Mac with Xcode installed:
 
-- Menu bar player
-- Compact floating mini-player
-- Zen listening mode
-- Global keyboard shortcuts
-- Native media key integration
-- Search and library access
-- Yandex Music personal recommendations
-- "My Wave" playback, where supported
-- Dynamic artwork-based visual atmosphere
-- Light, dark, and system appearance
-- Soft transitions and reduced-motion support
+```bash
+swift test
+./scripts/package-app.sh
+open dist/lueya.app
+```
 
-Features are planned, not yet implemented.
+The app appears in the menu bar. Its **Open official Yandex Music**
+button opens the official service in the default browser; it does
+not control playback or read your account from inside lueya.
 
-## Technology
+See [Building](docs/BUILDING.md), [Architecture](docs/ARCHITECTURE.md),
+[M0 feasibility](docs/M0-FEASIBILITY.md), and [Roadmap](docs/ROADMAP.md).
 
-- Swift
-- SwiftUI
-- AppKit
-- macOS
-- WebKit / AVFoundation where appropriate
-- Keychain for sensitive credentials
+## Planned, not implemented
 
-The playback integration is subject to a technical
-and legal feasibility assessment.
+Menu-bar mini-player, Zen mode, floating view, global hotkeys,
+media controls, search, library, dynamic artwork and My Wave
+where supported by a technically and legally permitted integration.
 
-See [Architecture](docs/ARCHITECTURE.md).
+## Development and security
 
-## Development
+Every completed milestone requires a whole-repository code/security
+audit, refactoring assessment and regression verification.
+Never commit provider credentials, cookies or signing keys.
 
-The project follows milestones.
+lueya is not affiliated with, endorsed by or sponsored by Yandex.
+Yandex Music and related trademarks belong to their owners.
 
-See [Roadmap](docs/ROADMAP.md).
-
-A complete repository-wide audit, code review,
-and refactoring assessment is required at the
-end of each milestone.
-
-## Status
-
-M0 — Feasibility and playback research.
-
-No working playback integration is claimed yet.
-
-## Privacy and security
-
-- No application-owned analytics
-- No advertising SDKs
-- No application backend by default
-- No committed credentials or tokens
-- Authentication secrets stored securely
-- Minimum necessary platform permissions
-
-The music provider may process data according
-to its own terms and privacy policy.
-
-## Disclaimer
-
-lueya is an independent, unofficial project.
-
-It is not affiliated with, endorsed by, or
-sponsored by Yandex.
-
-Yandex Music and related trademarks belong
-to their respective owners.
-
-Integration must comply with applicable terms,
-copyright requirements, and technical restrictions.
-
-## License
+## Proprietary license
 
 Copyright © 2026. All rights reserved.
-
-This is proprietary software.
-
-See [LICENSE](LICENSE).
-
-No open-source license is granted.
+Not open source. See [LICENSE](LICENSE).

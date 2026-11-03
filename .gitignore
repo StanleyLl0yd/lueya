@@ -6,9 +6,10 @@
 .Spotlight-V100/
 .Trashes/
 
-# Xcode
+# Build outputs
 DerivedData/
 build/
+dist/
 *.xcuserstate
 *.xcuserdata/
 *.xccheckout
@@ -22,13 +23,11 @@ build/
 *.xcresult/
 *.dmg
 *.pkg
-
-# Swift Package Manager
 .build/
 .swiftpm/
 Packages/
 
-# Local settings
+# Local settings, secrets and signing
 .env
 .env.*
 !.env.example
@@ -36,22 +35,18 @@ Packages/
 Secrets.xcconfig
 Local.xcconfig
 *.private.xcconfig
-
-# Credentials and signing
 *.p12
 *.p8
 *.mobileprovision
 *.provisionprofile
 *.key
 
-# Editors
+# Editors and temporary files
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
-
-# Temporary files
 tmp/
 temp/
 *.log
