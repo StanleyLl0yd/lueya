@@ -6,7 +6,7 @@
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
 - [x] Identify official Yandex ID OAuth vs unofficial Music API/Ynison boundaries (#13)
 - [x] Implement isolated read-only native Swift Music HTTP transport with synthetic tests (not connected to main UI)
-- [ ] Establish a lueya-owned OAuth client with explicitly permitted Music scopes or provider permission
+- [ ] Establish whether Music permits a distinct OAuth client/scope; obtain explicit provider-approved authentication and playback permission (community reports custom Music OAuth registration unavailable)
 - [ ] Prove authorized account status, metadata and full-length in-app playback on real Macs
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
