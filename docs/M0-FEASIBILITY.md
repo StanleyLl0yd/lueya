@@ -43,7 +43,7 @@ tracks a separate `LueyaEmbedProbe` app. It:
   the regular lueya app keeps its network entitlement disabled.
 - Does not request login, capture passwords or extract cookies/tokens.
 - Adds no injection, site scripts, custom stream extraction or DRM bypass.
-- Rejects **top-level** navigation away from the known official embed origin/path. WebKit subframes and provider-managed subresources are not globally restricted.
+- Intends to reject **top-level** navigation away from the known official embed origin/path; however Xcode 27 exposed a Swift 6 `WKNavigationDelegate` signature mismatch. The restriction is **unverified** until [fix PR #11](https://github.com/StanleyLl0yd/lueya/pull/11) passes CI and an on-device negative-navigation test. WebKit subframes and provider-managed subresources are not globally restricted.
 - Does not save a music catalog, account details, or audio to disk.
 
 This limited technical study does not establish broad rights to
