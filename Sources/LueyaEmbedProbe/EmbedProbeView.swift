@@ -28,7 +28,6 @@ struct EmbedProbeView: View {
                     Label(webErrorMessage, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .accessibilityAddTraits(.updatesFrequently)
                 }
             } else {
                 ContentUnavailableView(
@@ -119,6 +118,7 @@ private struct OfficialTrackWebView: NSViewRepresentable {
 
             decisionHandler(.allow)
         }
+
         func webView(
             _ webView: WKWebView,
             didFailProvisionalNavigation navigation: WKNavigation!,
@@ -148,6 +148,5 @@ private struct OfficialTrackWebView: NSViewRepresentable {
             errorMessage.wrappedValue =
                 "The official track could not be loaded. Check your connection or regional availability."
         }
-
     }
 }
