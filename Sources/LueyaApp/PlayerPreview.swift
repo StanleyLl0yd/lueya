@@ -3,6 +3,8 @@ import LueyaCore
 import SwiftUI
 
 struct PlayerPreview: View {
+    let signIn: MusicSignInModel
+
     private let ivory = Color(red: 0.96, green: 0.91, blue: 0.85)
     private let muted = Color(red: 0.74, green: 0.70, blue: 0.70)
 
@@ -81,8 +83,14 @@ struct PlayerPreview: View {
                 .accessibilityHint("Opens the official website in your default browser")
             }
 
+            Rectangle()
+                .fill(.white.opacity(0.14))
+                .frame(height: 1)
+
+            signInControls
+
             HStack {
-                Text("M0 · feasibility")
+                Text("M0 · authenticated API research")
                     .font(.system(size: 10))
                     .foregroundStyle(muted.opacity(0.85))
                 Spacer()
@@ -107,5 +115,74 @@ struct PlayerPreview: View {
                 Rectangle().fill(.ultraThinMaterial).opacity(0.17)
             }
         }
+        .task {
+            await signIn.restoreIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    private var signInControls: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Yandex Music account")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(ivory)
+
+            switch signIn.status {
+            case .restoring:
+                Label("Checking local session…", systemImage: "clock")
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+            case .signedOut:
+                Button("Sign in with Yandex") { signIn.signIn() }
+                    .font(.system(size: 12))
+            case .requestingCode:
+                Label("Requesting a sign-in code…", systemImage: "hourglass")
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+            case .awaitingAuthorization:
+                if let code = signIn.code {
+                    Text("Enter this code on Yandex's sign-in page:")
+                        .font(.system(size: 11))
+                        .foregroundStyle(muted)
+                    HStack {
+                        Text(code.userCode)
+                            .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                            .textSelection(.enabled)
+                            .foregroundStyle(ivory)
+                        Spacer()
+                        Button("Copy") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(code.userCode, forType: .string)
+                        }
+                        .font(.system(size: 11))
+                    }
+                    Button("Open Yandex authorization page") {
+                        guard YandexOAuthClient.isTrustedVerificationURL(code.verificationURL) else {
+                            return
+                        }
+                        NSWorkspace.shared.open(code.verificationURL)
+                    }
+                    .font(.system(size: 11))
+                    Button("Cancel") { signIn.cancelSignIn() }
+                        .font(.system(size: 11))
+                }
+            case .signedIn(let account):
+                Label("Signed in: \(account)", systemImage: "checkmark.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(ivory)
+                Text("Music playback is not available in this M0 build.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(muted)
+                Button("Sign out") { signIn.signOut() }
+                    .font(.system(size: 11))
+            case .failed(let message):
+                Text(message)
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+                Button("Try sign-in again") { signIn.signIn() }
+                    .font(.system(size: 11))
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
