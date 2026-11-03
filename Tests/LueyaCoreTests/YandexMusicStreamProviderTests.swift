@@ -135,11 +135,43 @@ final class YandexMusicStreamProviderTests: XCTestCase {
     }
 
     func testClassifiesAccessAndRateLimitFailures() async {
-        for (status, error) in [(401, MusicStreamError.unauthorized),
-                                (403, .forbidden), (429, .rateLimited),
-                                (502, .httpStatus(502))] {
+        for (status, error) in [
+            (401, MusicStreamError.unauthorized(.trackMetadata)),
+            (403, .forbidden(.trackMetadata)),
+            (429, .rateLimited(.trackMetadata)),
+            (502, .httpStatus(.trackMetadata, 502))
+        ] {
             await expect(error, provider: makeProvider(transport: StubTransport(status: status)))
         }
+    }
+
+    func test403AtMetadataIsNotConfusedWithSourceFailure() async {
+        let transport = StubTransport(status: 403)
+        await expect(.forbidden(.trackMetadata), provider: makeProvider(transport: transport))
+        let requests = await transport.requests()
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests.first?.url?.path, "/tracks")
+    }
+
+    func test403AtAudioSourceCarriesRequestedQuality() async {
+        let transport = StubTransport(statusForSource: 403)
+        await expect(
+            .forbidden(.rawAudioSource(.lossless)),
+            provider: makeProvider(transport: transport)
+        )
+        let requests = await transport.requests()
+        XCTAssertEqual(requests.map { $0.url?.path }, ["/tracks", "/get-file-info"])
+        XCTAssertEqual(MusicRequestStage.rawAudioSource(.lossless).label, "audio source (lossless)")
+        XCTAssertEqual(MusicRequestStage.trackMetadata.label, "track metadata")
+        XCTAssertFalse(MusicRequestStage.rawAudioSource(.lossless).label.contains("sign="))
+    }
+
+    func test401AtAudioSourceIsStageSpecific() async {
+        let transport = StubTransport(statusForSource: 401)
+        await expect(
+            .unauthorized(.rawAudioSource(.lossless)),
+            provider: makeProvider(transport: transport)
+        )
     }
 
     func testRejectsMalformedMetadata() async {
@@ -210,6 +242,7 @@ final class YandexMusicStreamProviderTests: XCTestCase {
         private let metadata: String
         private let fileInfoByQuality: [String: String]
         private let status: Int
+        private let statusForSource: Int?
         private let responseURL: URL?
         private var captured: [URLRequest] = []
 
@@ -217,11 +250,13 @@ final class YandexMusicStreamProviderTests: XCTestCase {
             metadata: String = #"{"result":[{"id":117708948,"title":"Synthetic track","durationMs":215000,"available":true,"availableForPremiumUsers":true,"artists":[{"name":"Example artist"}]}]}"#,
             fileInfoByQuality: [String: String] = [:],
             status: Int = 200,
+            statusForSource: Int? = nil,
             responseURL: URL? = nil
         ) {
             self.metadata = metadata
             self.fileInfoByQuality = fileInfoByQuality
             self.status = status
+            self.statusForSource = statusForSource
             self.responseURL = responseURL
         }
 
@@ -237,7 +272,10 @@ final class YandexMusicStreamProviderTests: XCTestCase {
                 body = fileInfoByQuality[quality] ?? #"{"result":null}"#
             }
             let response = HTTPURLResponse(
-                url: responseURL ?? url, statusCode: status, httpVersion: nil, headerFields: nil
+                url: responseURL ?? url,
+                statusCode: url.path == "/get-file-info" ? (statusForSource ?? status) : status,
+                httpVersion: nil,
+                headerFields: nil
             )!
             return (Data(body.utf8), response)
         }
