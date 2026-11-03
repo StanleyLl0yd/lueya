@@ -72,8 +72,7 @@ public struct YandexMusicAPIClient: Sendable {
 
     public func accountStatus(accessToken: String) async throws -> MusicAccountStatus {
         guard !accessToken.isEmpty,
-              accessToken.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
-              accessToken.unicodeScalars.allSatisfy({ !$0.properties.isControl }) else {
+              accessToken.utf8.allSatisfy({ $0 >= 0x21 && $0 <= 0x7E }) else {
             throw MusicAPIError.invalidToken
         }
 
@@ -84,7 +83,7 @@ public struct YandexMusicAPIClient: Sendable {
         )
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("OAuth \\(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("OAuth \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await transport.data(for: request)
 
