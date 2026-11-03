@@ -99,7 +99,7 @@ public struct YandexOAuthClient: Sendable {
               model.expiresIn <= 86_400,
               model.interval > 0,
               model.interval <= 300,
-              let verificationURL = URL(string: model.verificationURL),
+              let verificationURL = URL(string: model.verificationUrl),
               Self.isTrustedVerificationURL(verificationURL) else {
             throw YandexOAuthError.invalidResponse
         }
@@ -272,7 +272,7 @@ public struct YandexOAuthClient: Sendable {
     private struct DeviceCodeResponse: Decodable {
         let deviceCode: String
         let userCode: String
-        let verificationURL: String
+        let verificationUrl: String
         let expiresIn: Int
         let interval: Int
     }
