@@ -37,3 +37,12 @@ credentials. Full-length playback and provider rights remain unverified.
 
 See [provider terms](https://yandex.ru/legal/music_termsofuse/ru)
 and [issue #16](https://github.com/StanleyLl0yd/lueya/issues/16).
+
+## v0.1.1 on-device diagnostic
+
+The user has observed an HTTP 403 response on a track check after
+successful login. The previous client did not retain which request was
+rejected. The new client labels the exact stage as `track metadata`
+or `audio source (lossless/hq/nq)`. These fixed labels never include
+URLs, signed media query parameters, request bodies or user tokens.
+The original 403 remains unexplained pending a physical-Mac retest.

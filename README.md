@@ -14,14 +14,14 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Restore and end sessions securely via macOS Keychain.
 - Experimental online track metadata and audio-source availability check.
 
-**v0.1.0 is an early release, not yet a working audio player.**
+**v0.1.1 is an early release, not yet a working audio player.**
 Full-length playback, search, playlists and My Wave are not implemented.
 
 ## Download
 
-**[Download lueya 0.1.0 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.1.0/lueya-0.1.0-macos-arm64.zip)**
+**[Download lueya 0.1.1 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.1.1/lueya-0.1.1-macos-arm64.zip)**
 
-[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.1.0/SHA256SUMS.txt) ·
+[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.1.1/SHA256SUMS.txt) ·
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27
