@@ -14,7 +14,7 @@ Status: M0 authenticated API research, PR #15 pending CI/on-device validation; p
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
 - `PlayerPreview`: non-playing warm-glass interface
-- `LueyaCore`: site validators, isolated `YandexMusicAPIClient`, `YandexOAuthClient`, `YandexMusicSession`, and device-only `KeychainOAuthTokenStore` (PR #15)
+- `LueyaCore`: site validators, isolated `YandexMusicAPIClient`, `YandexOAuthClient`, `YandexMusicSession`, and local `KeychainOAuthTokenStore` (Data Protection preferred; traditional Keychain fallback for ad-hoc signatures) (PR #15)
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
 - `scripts/package-app.sh`: locally ad-hoc-signed app bundle
 - XCTest suite and two-runner macOS native CI
@@ -34,7 +34,7 @@ outbound network access for explicit login and API calls.
 - Provider: native Swift `URLSession` adapter with fixed trusted origin,
   ephemeral transport and redirect blocking; integration via supported,
   authorized capabilities only
-- Persistence: device-only macOS Keychain for OAuth tokens; UserDefaults for non-secret UI settings only
+- Persistence: local macOS Keychain for OAuth tokens (Data Protection preferred; traditional fallback for test signatures); UserDefaults for non-secret UI settings only
 
 ## Constraints
 
