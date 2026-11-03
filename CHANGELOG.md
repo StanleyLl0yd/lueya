@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Retired anonymous shared-track playback testing in favor of API-first M0 (#13)
+- Added isolated native URLSession read-only account-status client, synthetic transport tests and explicit provider authorization gates
+
 ### Added
 
 - Initial proprietary repository, documentation and policies
