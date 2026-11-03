@@ -3,7 +3,7 @@ import LueyaCore
 import SwiftUI
 
 struct PlayerPreview: View {
-    @State private var signIn = MusicSignInModel()
+    let signIn: MusicSignInModel
 
     private let ivory = Color(red: 0.96, green: 0.91, blue: 0.85)
     private let muted = Color(red: 0.74, green: 0.70, blue: 0.70)
