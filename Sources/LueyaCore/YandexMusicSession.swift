@@ -26,6 +26,9 @@ public actor YandexMusicSession {
 
         // Do not persist a token that cannot access this user's Music account.
         let account = try await api.accountStatus(accessToken: obtained.accessToken)
+        guard let uid = account.account?.uid, uid > 0 else {
+            throw MusicAPIError.unauthorized
+        }
         try Task.checkCancellation()
 
         try store.save(obtained)
@@ -42,7 +45,13 @@ public actor YandexMusicSession {
     }
 
     public func validAccessToken() async throws -> String? {
-        guard let current = tokens ?? (try store.load()) else { return nil }
+        let stored: OAuthTokens?
+        if let tokens {
+            stored = tokens
+        } else {
+            stored = try store.load()
+        }
+        guard let current = stored else { return nil }
         if current.needsRefresh() {
             guard current.refreshToken != nil else {
                 throw YandexOAuthError.expired
@@ -80,6 +89,10 @@ public actor YandexMusicSession {
             guard current.refreshToken != nil else { throw MusicAPIError.unauthorized }
             current = try await oauth.refresh(current)
             account = try await api.accountStatus(accessToken: current.accessToken)
+        }
+
+        guard let uid = account.account?.uid, uid > 0 else {
+            throw MusicAPIError.unauthorized
         }
 
         if current.accessToken != initial.accessToken ||
