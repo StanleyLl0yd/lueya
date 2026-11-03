@@ -48,10 +48,10 @@ jobs:
             /usr/bin/codesign --verify --strict "dist/$app.app"
             entitlements="$(mktemp)"
             /usr/bin/codesign --display --entitlements - --xml "dist/$app.app" > "$entitlements" 2>/dev/null
-            test "$(/usr/bin/plutil -extract 'com.apple.security.app-sandbox' raw -o - "$entitlements")" = true
+            test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$entitlements")" = true
             if [[ "$app" == "lueya-embed-probe" ]]; then
-              test "$(/usr/bin/plutil -extract 'com.apple.security.network.client' raw -o - "$entitlements")" = true
-            elif /usr/bin/plutil -extract 'com.apple.security.network.client' raw -o - "$entitlements" >/dev/null 2>&1; then
+              test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.network.client' "$entitlements")" = true
+            elif /usr/libexec/PlistBuddy -c 'Print :com.apple.security.network.client' "$entitlements" >/dev/null 2>&1; then
               echo "::error::Main lueya must not have network.client entitlement"
               exit 1
             fi
