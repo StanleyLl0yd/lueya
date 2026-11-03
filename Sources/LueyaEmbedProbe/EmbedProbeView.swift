@@ -5,6 +5,7 @@ import WebKit
 
 struct EmbedProbeView: View {
     @State private var userConsentedToLoad = false
+    @State private var webErrorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -19,9 +20,15 @@ struct EmbedProbeView: View {
             .foregroundStyle(.secondary)
 
             if userConsentedToLoad {
-                OfficialTrackWebView()
+                OfficialTrackWebView(errorMessage: $webErrorMessage)
                     .frame(minHeight: 190)
                     .accessibilityLabel("Official Yandex Music shared-track player")
+
+                if let webErrorMessage {
+                    Label(webErrorMessage, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 ContentUnavailableView(
                     "Network access is off",
@@ -58,8 +65,10 @@ struct EmbedProbeView: View {
 }
 
 private struct OfficialTrackWebView: NSViewRepresentable {
+    @Binding var errorMessage: String?
+
     func makeCoordinator() -> NavigationGate {
-        NavigationGate()
+        NavigationGate(errorMessage: $errorMessage)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -83,24 +92,58 @@ private struct OfficialTrackWebView: NSViewRepresentable {
 
     func updateNSView(_ nsView: WKWebView, context: Context) {}
 
+    @MainActor
     final class NavigationGate: NSObject, WKNavigationDelegate {
+        private let errorMessage: Binding<String?>
+
+        init(errorMessage: Binding<String?>) {
+            self.errorMessage = errorMessage
+        }
+
         func webView(
             _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
+            decidePolicyFor navigationAction: WKNavigationAction
+        ) async -> WKNavigationActionPolicy {
             if navigationAction.targetFrame?.isMainFrame == false {
-                decisionHandler(.allow)
-                return
+                return .allow
             }
 
             guard let url = navigationAction.request.url,
                   OfficialSharedEmbed.allowsNavigation(to: url) else {
-                decisionHandler(.cancel)
-                return
+                return .cancel
             }
 
-            decisionHandler(.allow)
+            return .allow
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFailProvisionalNavigation navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            showLoadFailure(error)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFail navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            showLoadFailure(error)
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            errorMessage.wrappedValue =
+                "The embedded player stopped unexpectedly. Reopen the probe to retry."
+        }
+
+        private func showLoadFailure(_ error: Error) {
+            let error = error as NSError
+            if error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled {
+                return
+            }
+            errorMessage.wrappedValue =
+                "The official track could not be loaded. Check your connection or regional availability."
         }
     }
 }

@@ -43,7 +43,7 @@ tracks a separate `LueyaEmbedProbe` app. It:
   the regular lueya app keeps its network entitlement disabled.
 - Does not request login, capture passwords or extract cookies/tokens.
 - Adds no injection, site scripts, custom stream extraction or DRM bypass.
-- Intends to reject **top-level** navigation away from the known official embed origin/path; however Xcode 27 exposed a Swift 6 `WKNavigationDelegate` signature mismatch. The restriction is **unverified** until [fix PR #11](https://github.com/StanleyLl0yd/lueya/pull/11) passes CI and an on-device negative-navigation test. WebKit subframes and provider-managed subresources are not globally restricted.
+- Intends to reject **top-level** navigation away from the known official embed origin/path; however Xcode 27 exposed a Swift 6 `WKNavigationDelegate` signature mismatch. [Fix PR #11](https://github.com/StanleyLl0yd/lueya/pull/11) is now MERGED with 2/2 macOS CI PASS and no delegate signature warning, but an on-device negative-navigation test is still required before claiming effective runtime enforcement. WebKit subframes and provider-managed subresources are not globally restricted.
 - Does not save a music catalog, account details, or audio to disk.
 
 This limited technical study does not establish broad rights to
@@ -53,7 +53,7 @@ distribute a Yandex Music client or modify the Yandex player.
 
 The released `lueya-embed-probe.app` loaded an apparently arbitrary track and produced audible playback for approximately **15–20 seconds**, then stopped on a real Mac. Track identity, expected duration, exact OS version, network region, subscription/account state, and the failure/preview UI were not reported. This is **PARTIAL PASS** for basic WebKit audio, **not** proof of full-length playback or rights to integrate with the user's Music account. A provider preview limit is a hypothesis, not a verified cause. See [issue #6](https://github.com/StanleyLl0yd/lueya/issues/6#issuecomment-6614721015).
 
-A [full tracked-tree pre-acceptance audit](M0-REPOSITORY-AUDIT-2026-11-03.md) is documented, with remediation and final verification still pending. No M0 acceptance or M1 transition is authorized.
+A [full tracked-tree pre-acceptance audit](M0-REPOSITORY-AUDIT-2026-11-03.md) is documented. Branch protection is ACTIVE (ruleset #26484158; issue #8 closed), signed-entitlement CI is merged in PR #10, and WebKit delegate/diagnostic improvements are merged in PR #11. Remaining audit findings and runtime verification still need resolution. No M0 acceptance or M1 transition is authorized.
 
 ## M0 remaining gate
 
