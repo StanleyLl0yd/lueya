@@ -4,7 +4,9 @@
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
 [here](M0-API-FEASIBILITY.md). The experimental API-authenticated test build is tracked in [draft PR #15](https://github.com/StanleyLl0yd/lueya/pull/15); it is **not** a full player.
-The planned release notes are [here](AUTH-RESEARCH-RELEASE-NOTES.md).
+The 0.0.3 authorization release notes are [here](AUTH-RESEARCH-RELEASE-NOTES.md).
+The current 0.0.4 non-playing on-device source check instructions are
+[here](STREAM-CHECK-RELEASE-NOTES.md).
 
 **Development and builds remain on GitHub.** To test, download
 only the built application ZIP(s), not the source code.
