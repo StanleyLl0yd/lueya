@@ -28,7 +28,7 @@ Sources: [Music terms](https://yandex.ru/legal/music_termsofuse/ru), [Yandex ID 
 
 ## Implemented research foundation (unreleased)
 
-`Sources/LueyaCore/YandexMusicAPIClient.swift` provides a concrete, read-only HTTP client for **`GET https://api.music.yandex.net/account/status`**, using the endpoint documented in the unofficial OpenAPI spec. It takes a caller-provided OAuth token; account status is now called by the experimental `YandexMusicSession` (PR #15) after Device Flow. The `KeychainOAuthTokenStore` holds tokens locally; no audio playback is implemented. It limits requests to the fixed endpoint, uses ephemeral networking, rejects redirects and classifies authentication, quota, HTTP and parsing failures.
+`Sources/LueyaCore/YandexMusicAPIClient.swift` provides a concrete, read-only HTTP client for **`GET https://api.music.yandex.net/account/status`**, using the endpoint documented in the unofficial OpenAPI spec. It takes a caller-provided OAuth token; account status is now called by the experimental `YandexMusicSession` (PR #15) after Device Flow. The `KeychainOAuthTokenStore` holds tokens in the local Keychain (Data Protection preferred with an ad-hoc fallback); no audio playback is implemented. It limits requests to the fixed endpoint, uses ephemeral networking, rejects redirects and classifies authentication, quota, HTTP and parsing failures.
 
 `Tests/LueyaCoreTests/YandexMusicAPIClientTests.swift` uses an entirely synthetic transport and sample payload; no account, subscription, network call or token is exercised in CI. This is a **testable client transport foundation**, not an end-to-end connection.
 
