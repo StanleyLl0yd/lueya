@@ -13,7 +13,7 @@ Status: v0.1.0 early-access release; M0 remains OPEN. A user has confirmed accou
 ## Implemented M0 skeleton
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
-- `PlayerPreview`: non-playing warm-glass interface
+- `PlayerPreview`: non-playing native warm matte-glass menu, light cream styling, dynamic version label, Reduce Motion/Transparency handling
 - `LueyaCore`: site validators, isolated Music account/OAuth/session clients and local Keychain, plus typed `YandexMusicStreamProvider` raw-source negotiation with strict CDN guards (#17)
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
 - `scripts/package-app.sh`: size-optimized arm64 app, stripped before ad-hoc signing

@@ -46,3 +46,15 @@ rejected. The new client labels the exact stage as `track metadata`
 or `audio source (lossless/hq/nq)`. These fixed labels never include
 URLs, signed media query parameters, request bodies or user tokens.
 The original 403 remains unexplained pending a physical-Mac retest.
+
+## v0.2.0 quality negotiation observation
+
+The user's real v0.1.1 test of track `99338938` confirmed
+successful metadata retrieval and a quality-specific HTTP 403 at
+`hq`. The previous implementation stopped immediately and did not
+attempt the planned lower `nq` raw quality. v0.2.0 attempts the
+lower format after per-quality 403, without retrying HTTP 401/429,
+decrypting `encraw` or bypassing access controls. If no separately
+permitted raw source is returned, the lookup fails as before.
+This does **not** establish access rights or full-length playback.
+A physical-Mac retest is necessary.

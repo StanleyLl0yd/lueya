@@ -177,6 +177,7 @@ public struct YandexMusicStreamProvider: MusicProvider {
         var encounteredEncrypted = false
         var encounteredUnsupportedCodec = false
         var encounteredUntrustedURL = false
+        var lastQualityDenied: MusicRequestStage?
 
         // A format request is explicitly raw. No 'encraw' decryption is supported.
         // The service chooses the actual quality/codec, which is checked below.
@@ -206,7 +207,19 @@ public struct YandexMusicStreamProvider: MusicProvider {
 
             var request = Self.makeAPIRequest(to: url, accessToken: accessToken)
             request.setValue(Self.desktopClient, forHTTPHeaderField: "X-Yandex-Music-Client")
-            let data = try await responseData(for: request, stage: .rawAudioSource(quality))
+            let data: Data
+            do {
+                data = try await responseData(for: request, stage: .rawAudioSource(quality))
+            } catch let error as MusicStreamError {
+                if case .forbidden(let deniedStage) = error {
+                    // A denial for one quality does not authorize playback, but
+                    // a lower, independently permitted raw format may be offered.
+                    // Never retry an unauthorized session or bypass encryption.
+                    lastQualityDenied = deniedStage
+                    continue
+                }
+                throw error
+            }
 
             guard let response = try? JSONDecoder().decode(Envelope<FileInfoPayload>.self, from: data) else {
                 throw MusicStreamError.invalidPayload
@@ -234,6 +247,9 @@ public struct YandexMusicStreamProvider: MusicProvider {
             encounteredUntrustedURL = true
         }
 
+        if let lastQualityDenied {
+            throw MusicStreamError.forbidden(lastQualityDenied)
+        }
         if encounteredEncrypted { throw MusicStreamError.unsupportedEncryptedTransport }
         if encounteredUnsupportedCodec { throw MusicStreamError.unsupportedCodec }
         if encounteredUntrustedURL { throw MusicStreamError.untrustedMediaURL }

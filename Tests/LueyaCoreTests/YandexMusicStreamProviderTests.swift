@@ -156,14 +156,54 @@ final class YandexMusicStreamProviderTests: XCTestCase {
     func test403AtAudioSourceCarriesRequestedQuality() async {
         let transport = StubTransport(statusForSource: 403)
         await expect(
-            .forbidden(.rawAudioSource(.lossless)),
+            .forbidden(.rawAudioSource(.nq)),
             provider: makeProvider(transport: transport)
         )
         let requests = await transport.requests()
-        XCTAssertEqual(requests.map { $0.url?.path }, ["/tracks", "/get-file-info"])
+        XCTAssertEqual(requests.map { $0.url?.path }, [
+            "/tracks", "/get-file-info", "/get-file-info", "/get-file-info"
+        ])
         XCTAssertEqual(MusicRequestStage.rawAudioSource(.lossless).label, "audio source (lossless)")
         XCTAssertEqual(MusicRequestStage.trackMetadata.label, "track metadata")
         XCTAssertFalse(MusicRequestStage.rawAudioSource(.lossless).label.contains("sign="))
+    }
+
+    func testForbiddenHQFallsBackToNQAndReturnsRawCandidate() async throws {
+        let transport = StubTransport(
+            fileInfoByQuality: [
+                "lossless": Self.info(codec: "flac", transport: "encraw"),
+                "nq": Self.rawInfo()
+            ],
+            statusForQuality: ["hq": 403]
+        )
+        let result = try await makeProvider(transport: transport).resolveTrack(
+            id: "117708948", accessToken: "test-token"
+        )
+        XCTAssertEqual(result.source.codec, .aacMP4)
+        let requests = await transport.requests()
+        let qualities = requests.dropFirst().compactMap { request in
+            URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "quality" })?.value
+        }
+        XCTAssertEqual(qualities, ["lossless", "hq", "nq"])
+    }
+
+    func testAllQualityDenialsReportLastAttempt() async {
+        let transport = StubTransport(
+            statusForQuality: ["lossless": 403, "hq": 403, "nq": 403]
+        )
+        await expect(.forbidden(.rawAudioSource(.nq)), provider: makeProvider(transport: transport))
+        let requests = await transport.requests()
+        XCTAssertEqual(requests.count, 4)
+    }
+
+    func testQualityFallbackStopsOn401AtNQ() async {
+        let transport = StubTransport(
+            statusForQuality: ["lossless": 403, "hq": 403, "nq": 401]
+        )
+        await expect(.unauthorized(.rawAudioSource(.nq)), provider: makeProvider(transport: transport))
+        let requests = await transport.requests()
+        XCTAssertEqual(requests.count, 4)
     }
 
     func test401AtAudioSourceIsStageSpecific() async {
@@ -243,6 +283,7 @@ final class YandexMusicStreamProviderTests: XCTestCase {
         private let fileInfoByQuality: [String: String]
         private let status: Int
         private let statusForSource: Int?
+        private let statusForQuality: [String: Int]
         private let responseURL: URL?
         private var captured: [URLRequest] = []
 
@@ -251,12 +292,14 @@ final class YandexMusicStreamProviderTests: XCTestCase {
             fileInfoByQuality: [String: String] = [:],
             status: Int = 200,
             statusForSource: Int? = nil,
+            statusForQuality: [String: Int] = [:],
             responseURL: URL? = nil
         ) {
             self.metadata = metadata
             self.fileInfoByQuality = fileInfoByQuality
             self.status = status
             self.statusForSource = statusForSource
+            self.statusForQuality = statusForQuality
             self.responseURL = responseURL
         }
 
@@ -271,9 +314,14 @@ final class YandexMusicStreamProviderTests: XCTestCase {
                     .queryItems?.first(where: { $0.name == "quality" })?.value ?? ""
                 body = fileInfoByQuality[quality] ?? #"{"result":null}"#
             }
+            let quality = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "quality" })?.value ?? ""
+            let responseStatus = url.path == "/get-file-info"
+                ? (statusForQuality[quality] ?? statusForSource ?? status)
+                : status
             let response = HTTPURLResponse(
                 url: responseURL ?? url,
-                statusCode: url.path == "/get-file-info" ? (statusForSource ?? status) : status,
+                statusCode: responseStatus,
                 httpVersion: nil,
                 headerFields: nil
             )!
