@@ -22,12 +22,15 @@ final class YandexMusicSessionTests: XCTestCase {
         XCTAssertEqual(result.account?.uid, 42)
         XCTAssertEqual(result.account?.login, "listener")
         XCTAssertEqual(try store.load()?.accessToken, "sample-token")
-        XCTAssertEqual(try await session.validAccessToken(), "sample-token")
-        XCTAssertEqual(await accountTransport.receivedAuthorization(), "OAuth sample-token")
+        let accessToken = try await session.validAccessToken()
+        XCTAssertEqual(accessToken, "sample-token")
+        let authorization = await accountTransport.receivedAuthorization()
+        XCTAssertEqual(authorization, "OAuth sample-token")
 
         try await session.signOut()
         XCTAssertNil(try store.load())
-        XCTAssertNil(try await session.validAccessToken())
+        let afterSignOut = try await session.validAccessToken()
+        XCTAssertNil(afterSignOut)
     }
 
     func testGuestStatusNeverPersistsCredentials() async throws {
