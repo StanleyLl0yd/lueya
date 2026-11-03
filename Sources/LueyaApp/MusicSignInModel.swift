@@ -106,7 +106,7 @@ final class MusicSignInModel {
         sourceProbeTask = Task {
             do {
                 guard let token = try await session.validAccessToken() else {
-                    throw MusicStreamError.unauthorized
+                    throw MusicStreamError.invalidToken
                 }
                 let track = try await streamProvider.resolveTrack(id: trackID, accessToken: token)
                 try Task.checkCancellation()
@@ -142,7 +142,7 @@ final class MusicSignInModel {
         case .invalidTrackID:
             return "Enter a numeric Yandex Music track ID."
         case .invalidToken:
-            return "The current session token is malformed."
+            return "Music session is missing or invalid. Please sign in again."
         case .unauthorized(let stage):
             return "HTTP 401: \(stage.label) request was unauthorized. Sign-in may need renewal."
         case .metadataUnavailable:
