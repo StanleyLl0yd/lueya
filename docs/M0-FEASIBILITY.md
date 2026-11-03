@@ -1,6 +1,6 @@
 # M0 feasibility: playback and integration evidence
 
-Status: OPEN — 2026-11-03. No full Yandex Music playback integration is approved.
+Status: HISTORICAL EMBED RESEARCH — superseded 2026-11-04 by [API-first feasibility](M0-API-FEASIBILITY.md). M0 remains OPEN and no full Yandex Music integration is approved.
 
 ## Confirmed public capabilities
 
@@ -31,7 +31,7 @@ Status: OPEN — 2026-11-03. No full Yandex Music playback integration is approv
 | Native Yandex streaming/Ynison | Unofficial community reverse engineering, no public licensed Music playback API established | Not implemented | Not authorized for project at present |
 | Yandex ID OAuth | Official identity scopes | Not implemented | Doesn't solve Music playback rights |
 
-## Isolated native embed test
+## Historical isolated native embed test (further testing cancelled)
 
 Issue [#6](https://github.com/StanleyLl0yd/lueya/issues/6)
 tracks a separate `LueyaEmbedProbe` app. It:
@@ -55,16 +55,14 @@ The released `lueya-embed-probe.app` loaded an apparently arbitrary track and pr
 
 A [full tracked-tree pre-acceptance audit](M0-REPOSITORY-AUDIT-2026-11-03.md) is documented. Branch protection is ACTIVE (ruleset #26484158; issue #8 closed), signed-entitlement CI is merged in PR #10, and WebKit delegate/diagnostic improvements are merged in PR #11. Remaining audit findings and runtime verification still need resolution. No M0 acceptance or M1 transition is authorized.
 
-## M0 remaining gate
+## Updated decision
 
-- [ ] Obtain/verify permitted integration scope for a full music client.
-- [ ] Verify the official sample track loads and **plays** in WKWebView
-      on a physical macOS 26 and 27 Apple Silicon Mac.
-- [ ] Document geographic restrictions, signed-in vs signed-out
-      behavior, audio controls and failure modes.
-- [ ] Assess whether permitted capabilities meet the app's core goals.
-- [ ] Prove native playback with a permitted integration or explicitly
-      record a no-go/blocker.
-- [ ] Resolve documented repository-wide pre-acceptance audit findings and perform final exact-head verification.
+The owner explicitly ended additional unauthenticated iframe testing on 2026-11-04.
+A community client documents approximately **30-second anonymous previews**,
+consistent with the observed shorter playback. The probe stays as recorded
+research evidence only; issue #6 is CLOSED / not planned for further work.
 
-M0 remains OPEN; this is not legal clearance.
+From now on the active M0 work is [authenticated API feasibility](M0-API-FEASIBILITY.md)
+and [issue #13](https://github.com/StanleyLl0yd/lueya/issues/13).
+No credentials or music are included in GitHub; no user account is connected.
+This historical report must not be mistaken for the current test plan.
