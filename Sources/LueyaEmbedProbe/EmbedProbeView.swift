@@ -102,21 +102,18 @@ private struct OfficialTrackWebView: NSViewRepresentable {
 
         func webView(
             _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
+            decidePolicyFor navigationAction: WKNavigationAction
+        ) async -> WKNavigationActionPolicy {
             if navigationAction.targetFrame?.isMainFrame == false {
-                decisionHandler(.allow)
-                return
+                return .allow
             }
 
             guard let url = navigationAction.request.url,
                   OfficialSharedEmbed.allowsNavigation(to: url) else {
-                decisionHandler(.cancel)
-                return
+                return .cancel
             }
 
-            decisionHandler(.allow)
+            return .allow
         }
 
         func webView(
