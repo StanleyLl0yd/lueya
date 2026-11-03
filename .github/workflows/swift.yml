@@ -80,6 +80,10 @@ jobs:
         with:
           name: lueya-macos-arm64-m0-preview.zip
           path: preview
+          # Upload was unwrapped; this archive must remain a file.
+          # Without this option v8 interprets application/zip as a
+          # compressed artifact and extracts lueya.app too early.
+          skip-decompress: true
       - name: Validate downloadable ZIP and generate SHA256SUMS
         shell: bash
         run: |
