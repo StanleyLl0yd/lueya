@@ -17,6 +17,13 @@
 
 ## Development
 
+- All authoritative source, CI results, packaged test builds and
+  prereleases live on GitHub. Never require a local developer checkout
+  or local Xcode compilation to distribute a test build.
+- A macOS desktop app necessarily executes from local disk; user-specific
+  secrets may only be stored locally in approved secure storage, never
+  uploaded to GitHub. Do not confuse remote builds with cloud execution.
+
 - Use focused branches and reviewable pull requests.
 - Preserve behavior; avoid unnecessary churn and abstractions.
 - Code and code comments are in English.

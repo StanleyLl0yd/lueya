@@ -10,7 +10,20 @@
 The Package.swift Swift tools minimum is 6.2 to build with both
 Xcode 26.6 and Xcode 27.1; the installed compiler is used.
 
-## Build and run
+## Cloud builds and test distribution
+
+CI performs release-mode compilation, XCTest, code signing and app
+packaging on GitHub-hosted macOS runners. The Xcode 27 job preserves
+a valid app bundle as a ZIP and uploads it to GitHub Actions.
+The ZIP has a macOS 26 deployment target and is compiled with
+our newest supported stable compiler.
+After **both** macOS 26 and macOS 27 checks succeed on `main`,
+the workflow publishes a clearly marked M0 prerelease for testing.
+No local source clone or local Xcode build is required for testers.
+
+See [Testing](TESTING.md) for the prebuilt app download and checks.
+
+## Optional local developer build
 
 ```bash
 xcodebuild -version
@@ -42,6 +55,8 @@ on macOS 26 and the Xcode 27 (macOS 27) runner.
 
 The Xcode 27 runner has been generally available since 2026-10-15.
 CI does not substitute for interactive manual smoke tests on both OS releases.
+For this project, GitHub Actions is the authoritative build and
+binary distribution channel. Local builds are optional diagnostics only.
 
 ## Current limitations
 
