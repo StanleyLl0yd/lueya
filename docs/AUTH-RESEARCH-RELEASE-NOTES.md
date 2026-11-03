@@ -7,7 +7,7 @@ This is an **unofficial, pre-release experimental build** for Apple Silicon macO
 - Start a user-controlled Yandex OAuth Device Flow, show a one-time code and open the verification page in the default browser.
 - Sign in with **your own Yandex account**; lueya never asks you to type your Yandex password into the app.
 - Confirm an authenticated account-status response using the experimental native Swift Music API adapter.
-- Store access/refresh tokens locally in **this Mac's device-only Keychain**, restore the session after relaunch, renew expiring credentials where possible, and sign out.
+- Store access/refresh tokens locally in **macOS Keychain** (Data Protection if supported by the app signature, otherwise the traditional local Keychain for ad-hoc research builds), restore the session after relaunch, renew expiring credentials where possible, and sign out.
 - Show the existing native menu-bar UI without a design overhaul.
 
 ## Explicit limitations
