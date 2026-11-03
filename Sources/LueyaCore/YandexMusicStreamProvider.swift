@@ -10,7 +10,7 @@ public struct TrackMetadata: Sendable, Equatable {
     public let premiumRequired: Bool
 }
 
-public enum AudioQuality: String, Sendable {
+public enum AudioQuality: String, Sendable, Equatable {
     case lossless
     case hq
     case nq
@@ -63,6 +63,21 @@ public struct ResolvedTrack: Sendable, CustomStringConvertible, CustomDebugStrin
     public var debugDescription: String { description }
 }
 
+public enum MusicRequestStage: Equatable, Sendable {
+    case trackMetadata
+    case rawAudioSource(AudioQuality)
+
+    // Fixed diagnostic labels; never include sensitive request URLs.
+    public var label: String {
+        switch self {
+        case .trackMetadata:
+            "track metadata"
+        case .rawAudioSource(let quality):
+            "audio source (\(quality.rawValue))"
+        }
+    }
+}
+
 public enum MusicStreamError: Error, Equatable, Sendable {
     case invalidTrackID
     case invalidToken
@@ -73,10 +88,10 @@ public enum MusicStreamError: Error, Equatable, Sendable {
     case unsupportedEncryptedTransport
     case unsupportedCodec
     case untrustedMediaURL
-    case unauthorized
-    case forbidden
-    case rateLimited
-    case httpStatus(Int)
+    case unauthorized(MusicRequestStage)
+    case forbidden(MusicRequestStage)
+    case rateLimited(MusicRequestStage)
+    case httpStatus(MusicRequestStage, Int)
 }
 
 public enum MusicCDNPolicy {
@@ -142,7 +157,7 @@ public struct YandexMusicStreamProvider: MusicProvider {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data("track-ids=\(id)".utf8)
 
-        let data = try await responseData(for: request)
+        let data = try await responseData(for: request, stage: .trackMetadata)
         guard let payload = try? JSONDecoder().decode(Envelope<[TrackPayload]>.self, from: data),
               let track = payload.result?.first,
               track.id.value == id else {
@@ -165,8 +180,9 @@ public struct YandexMusicStreamProvider: MusicProvider {
 
         // A format request is explicitly raw. No 'encraw' decryption is supported.
         // The service chooses the actual quality/codec, which is checked below.
-        for preference in ["lossless", "hq", "nq"] {
+        for quality in [AudioQuality.lossless, .hq, .nq] {
             try Task.checkCancellation()
+            let preference = quality.rawValue
             let requestedAt = now()
             let timestamp = Int64(requestedAt.timeIntervalSince1970)
             let codecs = Self.requestedCodecs
@@ -190,7 +206,7 @@ public struct YandexMusicStreamProvider: MusicProvider {
 
             var request = Self.makeAPIRequest(to: url, accessToken: accessToken)
             request.setValue(Self.desktopClient, forHTTPHeaderField: "X-Yandex-Music-Client")
-            let data = try await responseData(for: request)
+            let data = try await responseData(for: request, stage: .rawAudioSource(quality))
 
             guard let response = try? JSONDecoder().decode(Envelope<FileInfoPayload>.self, from: data) else {
                 throw MusicStreamError.invalidPayload
@@ -224,7 +240,10 @@ public struct YandexMusicStreamProvider: MusicProvider {
         throw MusicStreamError.unavailable
     }
 
-    private func responseData(for request: URLRequest) async throws -> Data {
+    private func responseData(
+        for request: URLRequest,
+        stage: MusicRequestStage
+    ) async throws -> Data {
         try Task.checkCancellation()
         let (data, response) = try await transport.data(for: request)
         guard let requestURL = request.url, let responseURL = response.url,
@@ -237,10 +256,10 @@ public struct YandexMusicStreamProvider: MusicProvider {
         }
         switch response.statusCode {
         case 200: return data
-        case 401: throw MusicStreamError.unauthorized
-        case 403: throw MusicStreamError.forbidden
-        case 429: throw MusicStreamError.rateLimited
-        default: throw MusicStreamError.httpStatus(response.statusCode)
+        case 401: throw MusicStreamError.unauthorized(stage)
+        case 403: throw MusicStreamError.forbidden(stage)
+        case 429: throw MusicStreamError.rateLimited(stage)
+        default: throw MusicStreamError.httpStatus(stage, response.statusCode)
         }
     }
 

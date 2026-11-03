@@ -106,7 +106,7 @@ final class MusicSignInModel {
         sourceProbeTask = Task {
             do {
                 guard let token = try await session.validAccessToken() else {
-                    throw MusicStreamError.unauthorized
+                    throw MusicStreamError.invalidToken
                 }
                 let track = try await streamProvider.resolveTrack(id: trackID, accessToken: token)
                 try Task.checkCancellation()
@@ -141,12 +141,14 @@ final class MusicSignInModel {
         switch stream {
         case .invalidTrackID:
             return "Enter a numeric Yandex Music track ID."
-        case .invalidToken, .unauthorized:
-            return "Music session expired. Please sign in again."
+        case .invalidToken:
+            return "Music session is missing or invalid. Please sign in again."
+        case .unauthorized(let stage):
+            return "HTTP 401: \(stage.label) request was unauthorized. Sign-in may need renewal."
         case .metadataUnavailable:
             return "The provider marks this track unavailable in its metadata."
-        case .forbidden:
-            return "The provider denied this track request (HTTP 403)."
+        case .forbidden(let stage):
+            return "HTTP 403: \(stage.label) request denied. This does not prove a region block."
         case .unavailable:
             return "No compatible raw audio source was returned for this track."
         case .unsupportedEncryptedTransport:
@@ -155,9 +157,11 @@ final class MusicSignInModel {
             return "No supported AAC/MP3 media format was supplied."
         case .untrustedMediaURL:
             return "The media source was outside the trusted CDN allowlist."
-        case .rateLimited:
-            return "Too many requests. Try again later."
-        case .invalidResponse, .invalidPayload, .httpStatus:
+        case .rateLimited(let stage):
+            return "HTTP 429: \(stage.label) rate-limited. Try again later."
+        case .httpStatus(let stage, let status):
+            return "HTTP \(status): \(stage.label) request failed."
+        case .invalidResponse, .invalidPayload:
             return "The service returned an unexpected media response."
         }
     }
