@@ -1,81 +1,64 @@
 # Roadmap
 
-## M0 — Feasibility
+## M0 — Feasibility (OPEN)
 
-- [ ] Verify supported authentication approaches
-- [ ] Evaluate compliant playback integration
-- [ ] Evaluate WebKit/native trade-offs
-- [ ] Validate session handling
-- [ ] Verify relevant provider terms
-- [ ] Confirm technical go/no-go
-- [ ] Document architecture decision
+- [x] Define native macOS 26/27 and latest-stable toolchain policy
+- [x] Implement isolated SwiftUI menu bar prototype without secrets
+- [x] Record initial provider terms and integration constraints
+- [ ] Verify authorized authentication approaches
+- [ ] Prove a permitted playback integration in a live prototype
+- [ ] Compare WebKit/native playback and session behavior
+- [ ] Confirm technical go/no-go and architecture decision
+- [ ] Perform full repository-wide milestone audit and verification
 
-Exit gate:
-A reproducible, permitted integration path
-or an explicit documented blocker.
+Exit gate: reproducible, permitted integration or documented blocker.
+A visual menu bar shell does not complete M0.
 
 ## M1 — Native foundation
 
-- [ ] Create Swift/Xcode project
-- [ ] Implement application lifecycle
-- [ ] Implement menu bar integration
-- [ ] Implement mini-player shell
-- [ ] Implement appearance preferences
-- [ ] Establish executable CI and tests
+- [ ] Establish permanent signed Xcode app target
+- [ ] Finalize app lifecycle and menu bar behaviors
+- [ ] Implement floating mini-player
+- [ ] Implement appearance and accessibility settings
+- [ ] Expand manual verification and stable CI on macOS 26/27
 
-Exit gate:
-Native app shell is functional and tested.
+Exit gate: functioning, verified native app shell.
 
 ## M2 — Core music experience
 
-- [ ] Implement selected playback integration
-- [ ] Play/pause/next/previous
-- [ ] Metadata and artwork
-- [ ] Media key integration
-- [ ] Search
-- [ ] Library access where supported
-- [ ] Playback error handling
+- [ ] Implement approved playback integration
+- [ ] Play/pause/next/previous, track metadata and artwork
+- [ ] Native media keys and Now Playing
+- [ ] Search, library and My Wave where permitted
+- [ ] Session expiration, network error and recovery handling
 
-Exit gate:
-Reliable end-to-end core playback.
+Exit gate: end-to-end reliable, permitted music playback.
 
 ## M3 — Zen experience
 
-- [ ] Zen mode
-- [ ] Artwork-based atmosphere
-- [ ] Floating player
-- [ ] Global shortcuts
-- [ ] Motion and accessibility
-- [ ] Light/dark themes
-- [ ] Performance optimization
+- [ ] Zen mode, artwork ambience and floating controls
+- [ ] Global shortcuts and accessibility/motion support
+- [ ] Startup, RAM and CPU optimization
 
-Exit gate:
-Complete intended user experience.
+Exit gate: tested polished experience.
 
 ## M4 — Release readiness
 
-- [ ] Full regression testing
-- [ ] Privacy and security review
-- [ ] Third-party license review
+- [ ] Full regressions on macOS 26 and 27
+- [ ] Privacy/security and dependency license review
 - [ ] Trademark and naming clearance
-- [ ] App signing and notarization
-- [ ] Release packaging
-- [ ] Distribution documentation
+- [ ] Developer ID signing/notarization
+- [ ] Release packaging and documentation
 
-Exit gate:
-Approved release candidate.
+Exit gate: approved release candidate.
 
 ## Mandatory milestone gate
 
-After every milestone:
+After EVERY milestone:
+1. Complete repository-wide code/security/dependency audit.
+2. Complete architecture/maintainability review.
+3. Apply justified fixes and refactoring.
+4. Run regression tests and manual smoke tests.
+5. Record findings, blockers and acceptance decision.
 
-1. Full repository-wide code review.
-2. Full security and dependency audit.
-3. Full architecture and maintainability review.
-4. Refactoring where justified.
-5. Complete relevant regression testing.
-6. Document findings and remaining risks.
-7. Accept or reject milestone explicitly.
-
-Audits must cover the entire repository,
-not merely recent diffs.
+Never substitute a diff-only audit for a full repository review.
