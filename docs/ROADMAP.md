@@ -6,9 +6,12 @@
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
 - [x] Identify official Yandex ID OAuth vs unofficial Music API/Ynison boundaries (#13)
 - [x] Implement isolated read-only native Swift Music HTTP transport with synthetic tests (not connected to main UI)
-- [ ] Finish CI/review of user-initiated Device Flow, public upstream OAuth client identifiers and local-only Keychain session (PR #15); validate on a physical Mac
+- [x] Implement and verify experimental Device Flow, public upstream OAuth identifiers and local Keychain session in CI (PR #15)
+- [ ] Validate real Device Flow, Keychain session restore, renewal and sign-out on a physical Mac
 - [ ] Record official provider/terms and distribution limitations of the **unofficial** authentication and streaming interface
 - [ ] Confirm login and account status on a physical Mac with a user-owned subscription
+- [x] Implement typed raw source negotiation with mocked transport, HMAC signature and CDN allowlist (#17)
+- [ ] Validate live metadata and raw source through the optional on-device check (0.0.4 experimental build)
 - [ ] Prove full-length in-app streaming using the user's account and supported media formats (never offline)
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
