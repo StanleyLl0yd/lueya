@@ -60,8 +60,8 @@ public enum OAuthPollingResult: Sendable {
 }
 
 public struct YandexOAuthClient: Sendable {
-    // Public credentials of the official Yandex Music Android client, documented by
-    // MarshalX/yandex-music-api. These are NOT credentials issued to lueya.
+    // Public identifiers of the official Yandex Music Android client.
+    // These are NOT credentials issued to lueya.
     // Use is unofficial and can be revoked by the provider without notice.
     public static let publicClientID = "23cabbbdc6cd418abb4b39c32c41195d"
     public static let publicClientSecret = "53bc75238f0c4d08a118e51fe9203300"

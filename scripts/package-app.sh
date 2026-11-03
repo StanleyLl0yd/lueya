@@ -28,17 +28,20 @@ case "${1:-main}" in
         ;;
 esac
 
-swift build --configuration release --product "$executable"
+swift build --configuration release --product "$executable" -Xswiftc -Osize -Xlinker -dead_strip
 bin_dir="$(swift build --configuration release --show-bin-path)"
 app="$root/dist/$app_name.app"
 
+rm -rf "$app"
 mkdir -p "$app/Contents/MacOS"
 cp "$root/$info_file" "$app/Contents/Info.plist"
 cp "$bin_dir/$executable" "$app/Contents/MacOS/$executable"
 chmod 755 "$app/Contents/MacOS/$executable"
+/usr/bin/strip -S -x "$app/Contents/MacOS/$executable"
 
 /usr/bin/plutil -lint "$app/Contents/Info.plist"
 /usr/bin/codesign --force --sign - --entitlements "$root/$entitlements_file" "$app"
 
+printf 'Executable bytes: %s\n' "$(stat -f %z "$app/Contents/MacOS/$executable")"
 printf 'Packaged: %s\n' "$app"
 printf '%s\n' "Ad-hoc developer test signature only; not notarized."
