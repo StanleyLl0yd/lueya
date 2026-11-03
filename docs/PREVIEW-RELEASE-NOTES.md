@@ -13,8 +13,9 @@ This Apple Silicon/macOS 26–27 preview demonstrates:
 **Not implemented:** in-app playback, Yandex account login,
 search, metadata, queue, library, media keys, or My Wave.
 
-The build is produced only by GitHub Actions after successful Swift
-compilation, XCTest and arm64 bundle validation on **macOS 26 and 27**.
+The build is produced by GitHub Actions on **Xcode 27**, after Swift
+compilation, XCTest and arm64 validation on **macOS 26 and 27**.
+Its deployment target remains macOS 26.
 It contains no third-party Swift dependencies.
 
 Assets:

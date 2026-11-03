@@ -13,8 +13,10 @@ Xcode 26.6 and Xcode 27.1; the installed compiler is used.
 ## Cloud builds and test distribution
 
 CI performs release-mode compilation, XCTest, code signing and app
-packaging on GitHub-hosted macOS runners. The macOS 26 job preserves
+packaging on GitHub-hosted macOS runners. The Xcode 27 job preserves
 a valid app bundle as a ZIP and uploads it to GitHub Actions.
+The ZIP has a macOS 26 deployment target and is compiled with
+our newest supported stable compiler.
 After **both** macOS 26 and macOS 27 checks succeed on `main`,
 the workflow publishes a clearly marked M0 prerelease for testing.
 No local source clone or local Xcode build is required for testers.

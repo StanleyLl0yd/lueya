@@ -40,7 +40,7 @@ jobs:
           /usr/bin/lipo -archs dist/lueya.app/Contents/MacOS/LueyaApp | grep -qw arm64
           /usr/bin/codesign --verify --strict dist/lueya.app
       - name: Create and verify downloadable macOS app ZIP
-        if: matrix.os == 'macos-26'
+        if: matrix.os == 'xcode-27'
         shell: bash
         run: |
           set -euo pipefail
@@ -55,7 +55,7 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$scratch/lueya.app/Contents/Info.plist")" = '26.0'
           shasum -a 256 "$archive"
       - name: Upload signed preview ZIP to GitHub Actions
-        if: matrix.os == 'macos-26'
+        if: matrix.os == 'xcode-27'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           archive: false
@@ -75,7 +75,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Download verified macOS 26 artifact
+      - name: Download verified Xcode 27 artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: lueya-macos-arm64-m0-preview.zip
