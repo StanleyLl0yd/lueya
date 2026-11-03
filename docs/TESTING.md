@@ -1,4 +1,10 @@
-# lueya M0 testing — Apple Silicon macOS 26/27
+# lueya M0 historical preview testing — Apple Silicon macOS 26/27
+
+**2026-11-04:** further testing of the anonymous shared-track WebKit
+probe is discontinued by project decision. This page documents the
+previous preview only. The current API-first plan is
+[here](M0-API-FEASIBILITY.md). There is no API-authenticated app build
+or full player available for manual testing yet.
 
 **Development and builds remain on GitHub.** To test, download
 only the built application ZIP(s), not the source code.
@@ -42,7 +48,7 @@ the block for a notarized build.
 - [ ] Opens official Yandex Music website in default browser
 - [ ] Quit works and relaunches
 
-## Standalone official shared-track embed checklist
+## Historical standalone shared-track embed checklist (no new tests)
 
 The probe is **not** the eventual player UI.
 
@@ -57,9 +63,9 @@ The probe is **not** the eventual player UI.
 - [ ] Closing and reopening does not retain a sign-in session
 - [ ] The main lueya menu bar app remains unaffected
 
-Log failures, OS version, network/region, and screenshots **without
-personal details or auth tokens** in
-[M0 embed issue #6](https://github.com/StanleyLl0yd/lueya/issues/6).
+The historical outcome (~15–20 seconds of audio) is recorded in
+[closed issue #6](https://github.com/StanleyLl0yd/lueya/issues/6).
+Do not perform additional manual tests for this legacy probe.
 
 ## Not yet supported
 
