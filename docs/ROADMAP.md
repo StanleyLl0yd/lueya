@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 — API-first feasibility (OPEN; v0.1.x is an early-release series, not M0 acceptance)
+## M0 — API-first feasibility (OPEN; v0.2.0 remains early access, not M0 acceptance)
 
 - [x] Establish native macOS 26/27 SwiftUI menu-bar shell and GitHub-only CI
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
@@ -12,7 +12,8 @@
 - [ ] Confirm login and account status on a physical Mac with a user-owned subscription
 - [x] Implement typed raw source negotiation with mocked transport, HMAC signature and CDN allowlist (#17)
 - [x] Confirm user-owned Mac sign-in and HTTP 403 for track 99338938 on v0.1.0 (denied request stage remains unknown)
-- [ ] Repeat track 99338938 on v0.1.1 to identify whether the 403 concerns metadata or a raw-source request (including quality)
+- [x] User test of track 99338938 on v0.1.1: metadata accepted; quality-specific hq raw source returned HTTP 403
+- [ ] Retest track 99338938 on v0.2.0 to see whether a separately permitted nq raw source is available
 - [ ] Prove full-length in-app streaming using the user's account and supported media formats (never offline)
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
@@ -24,7 +25,8 @@ See [API feasibility](M0-API-FEASIBILITY.md).
 ## M1 — Native foundation
 
 - [ ] Establish permanent Developer ID-signed Xcode app target
-- [ ] Finalize menu bar lifecycle, windowing and appearance
+- [x] Implement warm matte-glass menu-bar appearance, dynamic version footer and gentle accessible interactions (v0.2.0)
+- [ ] Validate on-device appearance, accessibility and window behavior; finalize
 - [ ] Implement floating mini-player and accessibility settings
 - [ ] Expand manual tests on macOS 26/27
 
