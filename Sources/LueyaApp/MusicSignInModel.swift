@@ -14,12 +14,23 @@ final class MusicSignInModel {
         case failed(String)
     }
 
+    enum SourceProbeStatus {
+        case idle
+        case checking
+        case verified(String, String)
+        case failed(String)
+    }
+
     private(set) var status: Status = .restoring
     private(set) var code: OAuthDeviceCode?
+    private(set) var sourceProbe: SourceProbeStatus = .idle
 
     @ObservationIgnored private let session = YandexMusicSession()
+    @ObservationIgnored private let streamProvider = YandexMusicStreamProvider()
     @ObservationIgnored private var hasRestored = false
     @ObservationIgnored private var signInTask: Task<Void, Never>?
+    @ObservationIgnored private var sourceProbeTask: Task<Void, Never>?
+    @ObservationIgnored private var sourceProbeGeneration: UInt64 = 0
 
     func restoreIfNeeded() async {
         guard !hasRestored else { return }
@@ -37,6 +48,7 @@ final class MusicSignInModel {
     }
 
     func signIn() {
+        cancelSourceProbe()
         signInTask?.cancel()
         code = nil
         status = .requestingCode
@@ -70,6 +82,7 @@ final class MusicSignInModel {
     }
 
     func signOut() {
+        cancelSourceProbe()
         signInTask?.cancel()
         signInTask = nil
         code = nil
@@ -81,6 +94,67 @@ final class MusicSignInModel {
             } catch {
                 status = .failed(Self.message(for: error))
             }
+        }
+    }
+
+    func checkStreamSource(trackID: String) {
+        guard case .signedIn = status else { return }
+        cancelSourceProbe()
+        sourceProbe = .checking
+        let generation = sourceProbeGeneration
+
+        sourceProbeTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicStreamError.unauthorized
+                }
+                let track = try await streamProvider.resolveTrack(id: trackID, accessToken: token)
+                try Task.checkCancellation()
+                guard sourceProbeGeneration == generation, case .signedIn = status else { return }
+
+                let metadata = track.metadata
+                let artist = metadata.artists.joined(separator: ", ")
+                let title = artist.isEmpty ? metadata.title : "\(artist) — \(metadata.title)"
+                let quality = track.source.quality.rawValue
+                let codec = track.source.codec.rawValue
+                sourceProbe = .verified(title, "Raw source candidate: \(codec) / \(quality). Audio not yet tested.")
+            } catch is CancellationError {
+                if sourceProbeGeneration == generation { sourceProbe = .idle }
+            } catch {
+                guard sourceProbeGeneration == generation, case .signedIn = status else { return }
+                sourceProbe = .failed(Self.streamMessage(for: error))
+            }
+        }
+    }
+
+    private func cancelSourceProbe() {
+        sourceProbeGeneration &+= 1
+        sourceProbeTask?.cancel()
+        sourceProbeTask = nil
+        sourceProbe = .idle
+    }
+
+    private static func streamMessage(for error: Error) -> String {
+        guard let stream = error as? MusicStreamError else {
+            return "Could not reach the music service. Check your network."
+        }
+        switch stream {
+        case .invalidTrackID:
+            return "Enter a numeric Yandex Music track ID."
+        case .invalidToken, .unauthorized:
+            return "Music session expired. Please sign in again."
+        case .forbidden, .unavailable:
+            return "This track is unavailable for this account or region."
+        case .unsupportedEncryptedTransport:
+            return "The service supplied only unsupported encrypted media."
+        case .unsupportedCodec:
+            return "No supported AAC/MP3 media format was supplied."
+        case .untrustedMediaURL:
+            return "The media source was outside the trusted CDN allowlist."
+        case .rateLimited:
+            return "Too many requests. Try again later."
+        case .invalidResponse, .invalidPayload, .httpStatus:
+            return "The service returned an unexpected media response."
         }
     }
 
