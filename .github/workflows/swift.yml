@@ -46,6 +46,16 @@ jobs:
             test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "dist/$app.app/Contents/Info.plist")" = "26.0"
             /usr/bin/lipo -archs "dist/$app.app/Contents/MacOS/$executable" | grep -qw arm64
             /usr/bin/codesign --verify --strict "dist/$app.app"
+            entitlements="$(mktemp)"
+            /usr/bin/codesign --display --entitlements - --xml "dist/$app.app" > "$entitlements" 2>/dev/null
+            test "$(/usr/bin/plutil -extract 'com.apple.security.app-sandbox' raw -o - "$entitlements")" = true
+            if [[ "$app" == "lueya-embed-probe" ]]; then
+              test "$(/usr/bin/plutil -extract 'com.apple.security.network.client' raw -o - "$entitlements")" = true
+            elif /usr/bin/plutil -extract 'com.apple.security.network.client' raw -o - "$entitlements" >/dev/null 2>&1; then
+              echo "::error::Main lueya must not have network.client entitlement"
+              exit 1
+            fi
+            rm -f "$entitlements"
           done
       - name: Create and verify downloadable macOS app ZIP
         if: matrix.os == 'xcode-27'
