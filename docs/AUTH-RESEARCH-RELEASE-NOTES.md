@@ -13,7 +13,7 @@ This is an **unofficial, pre-release experimental build** for Apple Silicon macO
 ## Explicit limitations
 
 - **No music playback yet.** This build does not prove full-track streaming or subscription playback, and there is no offline functionality.
-- OAuth currently uses publicly documented identifiers of the official Yandex Music Android client from the community SDK. This is **unofficial and revocable**; Yandex may reject, change or block it. The identifiers are not issued to lueya.
+- OAuth currently uses publicly documented identifiers of the official Yandex Music Android client from publicly available client metadata. This is **unofficial and revocable**; Yandex may reject, change or block it. The identifiers are not issued to lueya.
 - Yandex Music service terms and regional/account limitations may apply. Signing in does not establish official third-party distribution permission.
 - No tokens, passwords or account data are collected by the developer, uploaded to GitHub or emitted by CI. Only app-local Keychain receives tokens.
 
