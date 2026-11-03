@@ -2,69 +2,63 @@
 
 **a softer way to listen.**
 
-A minimal, native warm-glass macOS experience designed for Yandex Music.
-Independent and unofficial.
+A minimalist, native warm-glass macOS client for Yandex Music.
+Independent and **unofficial**. macOS 26 minimum / macOS 27 target, Apple Silicon arm64.
 
-> **M0 API-first research:** the regular menu-bar app is native but does
-> **not** yet play music. An isolated Swift read-only client for an
-> unofficial Yandex Music API account-status endpoint has mock tests.
-> It is not wired into the app, has no token/login and has not been live-tested.
-> The former 30-second anonymous embed experiment is de-scoped.
+> **M0 authenticated API research:** this app is **not yet a music player**.
+> Draft [PR #15](https://github.com/StanleyLl0yd/lueya/pull/15) introduces
+> user-initiated Yandex Device Flow authentication and locally stored Keychain
+> sessions. Full-track playback has **not** been implemented or verified.
 
 ## Principles
 
-- Music first; almost invisible controls and soft ambient design.
-- Native SwiftUI and AppKit; not Electron, Tauri or Qt.
-- No application-owned analytics or advertisements.
-- Zero third-party package dependencies today.
-- macOS 26 minimum, macOS 27 target; arm64 Apple Silicon.
+- Native Swift 6, SwiftUI + AppKit, no Electron/Tauri/Qt or Python runtime.
+- Zen-style minimal UI, no app-owned analytics or ads.
+- Each listener signs in with **their own** Yandex account.
+- **Streaming only. No offline downloads or stored music library.**
+- Modular Swift API adapter separate from UI, session and audio engine.
+- No custom backend, no developer-hosted accounts or tokens.
 
-## Download from GitHub (no local development required)
+## Authentication research
 
-Test assets are built **entirely in GitHub Actions** and published on
-[Releases](https://github.com/StanleyLl0yd/lueya/releases).
-The historical v0.0.2 M0 preview contains two separately zipped apps:
+The optional native OAuth sign-in uses **public** application identifiers of
+Yandex's official Android Music client documented in the community
+[MarshalX/yandex-music-api](https://github.com/MarshalX/yandex-music-api)
+project. These identifiers are not issued to lueya, can be revoked or blocked
+and **do not imply official provider permission or endorsement**.
 
-- **lueya.app** — unchanged menu-bar UI and external official-site link.
-- **lueya-embed-probe.app** — historical anonymous shared-track diagnostic;
-  no further testing is requested, and it is not a product playback path.
+The app directs users to Yandex's own website and never asks for a password.
+Access/refresh tokens, if granted, are held only in a **device-only macOS
+Keychain** item. Sign out removes them. This feature has synthetic XCTest
+coverage but still needs physical-Mac acceptance with a real user-owned account.
+Do not post or email access tokens, refresh tokens or login screenshots.
 
-No source checkout or Xcode install is necessary to test.
-See [Testing](docs/TESTING.md) for checksum, Gatekeeper and smoke tests.
+## Development builds
 
-The unsigned-for-distribution developer previews use ad-hoc signatures
-and are not notarized; Gatekeeper may block them. Do not disable it.
+All authoritative source, CI, artifacts and prereleases are on
+[GitHub](https://github.com/StanleyLl0yd/lueya).
+After CI approval and merge of PR #15, the planned M0 test build is
+[v0.0.3-m0-auth.1](https://github.com/StanleyLl0yd/lueya/releases/tag/v0.0.3-m0-auth.1).
+Before publication, obtain the latest exact-commit GitHub Actions artifact
+from the PR, not the obsolete anonymous embed prerelease.
 
-## Technology
+The test app is ad-hoc signed, not notarized. Follow macOS Gatekeeper; do not
+disable system security controls.
 
-Swift 6, SwiftUI, AppKit, SwiftPM, Foundation URLSession (isolated API research),
-WebKit (historical probe only).
-The main application has no network entitlement. The isolated
-probe requires outbound network access to retrieve the official embed
-**after explicit user action**; it saves no account credentials.
+## Planned work
 
-## Planned (not implemented)
+Full-length authenticated music streaming, automatic best available quality,
+lossless where supported, playback controls, search, likes, playlists, My Wave
+and later Ynison. **No offline mode is planned.**
 
-A full audio player, My Wave, library, search, playback history,
-media keys and keyboard control require an authorized provider
-integration and actual playback proof on macOS 26/27.
+See [API feasibility](docs/M0-API-FEASIBILITY.md),
+[Architecture](docs/ARCHITECTURE.md), [Roadmap](docs/ROADMAP.md)
+and [Building](docs/BUILDING.md).
 
-See [API-first M0 feasibility](docs/M0-API-FEASIBILITY.md),
-[historical embed evidence](docs/M0-FEASIBILITY.md),
-[Architecture](docs/ARCHITECTURE.md),
-[Roadmap](docs/ROADMAP.md), and
-[Building](docs/BUILDING.md).
+## License and security
 
-## Development and security
-
-Every completed milestone requires a full repository-wide
-audit and refactoring review, not just a diff review.
-Do not commit credentials, cookies, signing keys or media.
+Copyright © 2026. All rights reserved. Proprietary software, not open source.
+See [LICENSE](LICENSE) and [SECURITY.md](SECURITY.md).
 
 lueya is not affiliated with, endorsed by or sponsored by Yandex.
-Yandex Music and related trademarks belong to their owners.
-
-## License
-
-Copyright © 2026. All rights reserved. Proprietary, not open source.
-See [LICENSE](LICENSE).
+Yandex Music and related trademarks are owned by their respective holders.
