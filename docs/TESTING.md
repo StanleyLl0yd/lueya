@@ -99,3 +99,29 @@ Do not mark the matrix as complete until each interaction has been verified
 on an actual macOS build and relevant synthetic transport tests pass.
 The one-shot test release must be delivered only after CI and package integrity
 verification; afterward the owner-feedback freeze resumes.
+
+## Signing and session continuity (v0.5.0 and later)
+
+CI can check code identity, not the owner's existing macOS Keychain ACL.
+No real OAuth credentials or private tokens are ever used in CI.
+
+- [ ] Owner's `.p12` imported only in the protected `lueya-signing` job;
+      fingerprint matches the pinned public SHA-256 and has Code Signing EKU
+- [ ] Release ZIP contains the certificate-signed arm64 app, not the ad-hoc
+      artifact from the ordinary PR build
+- [ ] `codesign --verify --strict` and a separately resigned build-number
+      variant have identical non-cdhash Designated Requirements
+- [ ] Test one-time ad-hoc v0.4.1 → certificate-signed upgrade without
+      deleting the original Keychain item; a one-time ACL prompt is possible
+- [ ] Test two subsequent builds signed by the **same** certificate;
+      no repeated access prompt, no new Yandex login, playback resumes
+- [ ] Relaunch and Mac reboot retain the session; explicit Sign out removes
+      the Keychain entry and does not allow playback after logout
+- [ ] Expired/revoked token is distinguished from missing entitlement or
+      denied Keychain access; no silent session deletion on read failure
+- [ ] macOS Gatekeeper behavior documented separately: a self-signed
+      certificate is not Developer ID/notarization
+
+Signed-package verification remains **PENDING** until the protected signing
+smoke job has actually run with the owner's uploaded identity. The final
+macOS-session checks remain pending an actual device migration.
