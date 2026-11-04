@@ -11,10 +11,10 @@ to their respective copyright holders.
 
 2. RESERVATION OF RIGHTS
 
-No permission is granted to use, reproduce, modify,
-redistribute, sublicense, sell, or create derivative
-works from the proprietary project materials without
-prior written authorization from the rights holder.
+Except for the narrow binary evaluation permission in Section 6,
+no permission is granted to use, reproduce, modify, redistribute,
+sublicense, sell, or create derivative works from proprietary
+project materials without prior written authorization.
 
 This restriction does not override rights granted by
 applicable law or the applicable GitHub Terms of Service,
@@ -42,7 +42,29 @@ To the maximum extent permitted by applicable law,
 the software is provided "AS IS", without warranties
 of any kind.
 
-6. PERMISSIONS
+6. LIMITED VOLUNTARY EVALUATION PERMISSION
 
-Additional permissions, if any, must be granted
-separately in writing by the rights holder.
+The rights holder permits individuals to download, install and run an
+unmodified executable obtained directly from the project's official
+GitHub Releases solely for their own voluntary, noncommercial research
+and testing, subject to applicable law and third-party terms.
+
+This limited permission does not permit redistribution, alteration,
+sublicensing, sale or commercial exploitation of source code or binaries.
+Any additional permission must be granted separately in writing.
+Mandatory statutory rights are unaffected.
+
+The permission concerns only the rights holder's own software; it does
+not authorize access to a third-party API, service, music catalog or
+copyrighted content. Each tester must independently have the rights
+and credentials required for any third-party service they choose to use.
+
+7. TESTING DISCLAIMER AND LIABILITY
+
+Test builds are experimental and supplied "AS IS" without assurances
+of fitness, reliability, security, availability or compatibility.
+Use is voluntary and at the participant's own risk. To the maximum
+extent permitted by applicable law, the rights holder disclaims
+liability for damage or loss resulting from voluntary evaluation.
+Nothing here excludes liability that applicable law does not allow
+to be excluded, or limits third-party rights.

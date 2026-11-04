@@ -16,12 +16,15 @@
 - [x] User macOS v0.2.0 test: 99338938 yields an AAC-MP4 hq source candidate; actual audio still untested
 - [x] Implement experimental AVPlayer playback through capped in-memory HTTPS ranges, Play/Pause/Stop/Seek (v0.3.0)
 - [x] Implement bounded same-track/codec/quality renewal for expired signed media, with native generated-AAC resource-loader tests (v0.4.0, #27; on-device verification still pending)
-- [ ] Prove full track beyond 30s and through completion, including seek, pause, expiry and network recovery on physical Mac
+- [x] Confirm user-owned macOS v0.3.1 has real audible playback beyond 30 seconds (screen shows 1:17/4:09)
+- [ ] Prove natural track completion, seek, pause, expiry and network recovery on physical Mac; separately validate v0.4.0
 - [ ] Review third-party streaming/distribution rights before M0 go/no-go
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
 
-M0 remains blocked on provider authorization and real end-to-end playback.
+M0 remains blocked on provider permission, full end-to-end completion
+and on-device recovery behavior. A voluntary research/testing disclaimer
+does not itself grant third-party service authorization.
 A working unofficial endpoint or anonymous preview is not sufficient.
 See [API feasibility](M0-API-FEASIBILITY.md).
 
@@ -61,6 +64,15 @@ Exit: fully polished tested experience.
 - [ ] Packaging and distribution documentation
 
 Exit: approved release candidate.
+
+## Release freeze (owner approval required)
+
+New versions, prereleases and release tags require **explicit owner acceptance
+of the specific target version**. Successful CI, a user screenshot, a PR
+merge or any handoff does not count as approval. GitHub Releases are published
+only by manual workflow_dispatch by the owner after passing both native CI
+targets; regular pushes/merges cannot publish releases. The current v0.4.0
+release remains unchanged until the owner decides otherwise.
 
 ## Mandatory milestone gate
 
