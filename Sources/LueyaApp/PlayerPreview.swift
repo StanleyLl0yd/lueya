@@ -145,7 +145,7 @@ struct PlayerPreview: View {
 
     private var listeningSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Online playback is in development", systemImage: "sparkle")
+            Label("Experimental online playback", systemImage: "sparkle")
                 .font(.system(size: 11))
                 .foregroundStyle(secondary)
 
@@ -249,7 +249,7 @@ struct PlayerPreview: View {
                     .foregroundStyle(ink)
                     .lineLimit(2)
 
-                Text("Check an authorized track source (no audio yet)")
+                Text("Check an authorized track to try online playback")
                     .font(.system(size: 11))
                     .foregroundStyle(secondary)
                     .fixedSize(horizontal: false, vertical: true)
