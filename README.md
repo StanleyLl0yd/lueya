@@ -14,17 +14,19 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Restore and end sessions securely via macOS Keychain.
 - Experimental native online playback for compatible raw AAC/MP3 tracks: Play, Pause, Stop, Seek and limited signed-source renewal.
 
-**v0.4.0 adds bounded recovery for expired signed audio links, with native synthetic loader tests.**
+**v0.4.1 is a test build with gentle Play/Pause/Stop animation, updated research-only disclosures, and the previous secure stream improvements.**
 A user-owned Mac test of v0.3.1 confirmed audible playback beyond 30 seconds,
-but v0.4.0, natural track completion and renewal still need device testing.
+but v0.4.1, natural track completion and renewal still need device testing.
 A source candidate alone does not guarantee full-track audio. Provider access and
 regional restrictions apply. Search, playlists and My Wave remain unavailable.
 
 ## Download
 
-**[Download lueya 0.4.0 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.0/lueya-0.4.0-macos-arm64.zip)**
+**Owner acceptance is pending. All development, CI/testing, release and milestone acceptance work is paused after delivery of this build until the owner reports its results.**
 
-[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.0/SHA256SUMS.txt) ·
+**[Download lueya 0.4.1 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.1/lueya-0.4.1-macos-arm64.zip)**
+
+[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.1/SHA256SUMS.txt) ·
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27

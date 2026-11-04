@@ -67,12 +67,14 @@ Exit: approved release candidate.
 
 ## Release freeze (owner approval required)
 
-New versions, prereleases and release tags require **explicit owner acceptance
-of the specific target version**. Successful CI, a user screenshot, a PR
-merge or any handoff does not count as approval. GitHub Releases are published
-only by manual workflow_dispatch by the owner after passing both native CI
-targets; regular pushes/merges cannot publish releases. The current v0.4.0
-release remains unchanged until the owner decides otherwise.
+Each iteration ends with a versioned, downloadable test release and a
+**hard stop**: all development, test runs, audits, milestone acceptance,
+new PR/merge/release activity and further planning are suspended until the
+owner gives explicit feedback on that exact build. Handoffs, CI completion
+and partial playback evidence never bypass the stop. v0.4.1 is the current
+owner-trial build. A narrowly scoped one-shot publish on its protected-main
+merge is permitted; all subsequent publishing requires fresh owner approval
+via manual workflow dispatch *after* the freeze is lifted.
 
 ## Mandatory milestone gate
 

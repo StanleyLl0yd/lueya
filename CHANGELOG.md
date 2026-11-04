@@ -3,6 +3,15 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.4.1
+
+Subtle animated hover/press reactions on Play/Pause/Stop, smooth native
+symbol swap and Stop reveal; respects Reduce Motion. Clarify personal
+noncommercial research intent, limited voluntary testing permission and
+non-waivable liability limits in both READMEs and proprietary LICENSE.
+Releases and development freeze after each owner test build until the owner
+explicitly provides their findings. No changes to the audio transport.
+
 ## v0.4.0
 
 Renew short-lived signed media URLs during playback only on HTTP 410 or

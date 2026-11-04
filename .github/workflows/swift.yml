@@ -102,8 +102,12 @@ jobs:
 
   publish-release:
     name: Publish immutable SemVer GitHub Release
-    # A successful merge or a handoff is never permission to publish.
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    # Exactly one push-triggered test release is authorized for v0.4.1.
+    # Afterwards, publishing is manual and only after the owner's test verdict.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+       startsWith(github.event.head_commit.message, 'test(lueya): owner trial v0.4.1 [one-shot-release]'))
     needs: native
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -118,18 +122,24 @@ jobs:
           RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}
         run: |
           set -euo pipefail
-          [[ "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
-            echo "::error::Only the repository owner can approve a release"
-            exit 1
-          }
-          [[ "$REQUESTED_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
-            echo "::error::Approval must target a numeric SemVer"
-            exit 1
-          }
-          [[ "$RELEASE_CONFIRMATION" == "APPROVE-v$REQUESTED_VERSION" ]] || {
-            echo "::error::No matching explicit release confirmation"
-            exit 1
-          }
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            # Authorized only for this precise owner trial transition.
+            test "$GITHUB_REF" = "refs/heads/main"
+            echo "One-shot v0.4.1 test release; freeze after delivery"
+          else
+            [[ "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
+              echo "::error::Only the repository owner can approve a release"
+              exit 1
+            }
+            [[ "$REQUESTED_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+              echo "::error::Approval must target a numeric SemVer"
+              exit 1
+            }
+            [[ "$RELEASE_CONFIRMATION" == "APPROVE-v$REQUESTED_VERSION" ]] || {
+              echo "::error::No matching explicit release confirmation"
+              exit 1
+            }
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -139,10 +149,17 @@ jobs:
         run: |
           set -euo pipefail
           version="$(python3 -c 'import plistlib; print(plistlib.load(open("App/Info.plist","rb"))["CFBundleShortVersionString"])')"
-          test "$version" = "${{ inputs.release_version }}" || {
-            echo "::error::Approved version differs from the app version"
-            exit 1
-          }
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            [[ "$version" == "0.4.1" ]] || {
+              echo "::error::One-shot test publish applies only to v0.4.1"
+              exit 1
+            }
+          else
+            test "$version" = "${{ inputs.release_version }}" || {
+              echo "::error::Approved version differs from the app version"
+              exit 1
+            }
+          fi
           echo "asset=lueya-$version-macos-arm64.zip" >> "$GITHUB_OUTPUT"
       - name: Download verified versioned ZIP
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
