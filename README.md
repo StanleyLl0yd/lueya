@@ -15,7 +15,7 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Native online AAC/MP3 playback with Play/Pause, Stop, Seek, Volume and limited signed-source renewal.
 - Authenticated song/artist search, selection and a temporary in-memory next/previous queue.
 
-**v0.5.0 is a pending owner test candidate** with a compact real player,
+**v0.5.0 is an owner-approved test build** with a compact real player,
 consistent tactile button animation (including Sign out), and search-based
 playback. The owner confirmed audible online playback on v0.4.1; search,
 queue advance, and device-level regression still require testing. No offline
@@ -23,10 +23,10 @@ mode. Provider restrictions still apply. Playlists and My Wave remain
 unavailable. The unofficial integration is not provider-authorized.
 ## Download
 
-**v0.5.0 requires an owner-authorized test release.** The direct link below
-works once it is published; if unavailable, publication is still pending.
-After the build is delivered for testing, all development, testing and release
-activity stops until the owner's verdict.
+**The owner explicitly authorized a signed v0.5.0 trial release.** The direct link below
+is available after successful signed-package verification and publication.
+Immediately after delivery, all development, tests, PR work and releases
+stop until the owner's verdict.
 
 **[Download lueya 0.5.0 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.0/lueya-0.5.0-macos-arm64.zip)**
 
@@ -34,7 +34,7 @@ activity stops until the owner's verdict.
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27
-supported). Builds are ad-hoc signed but not yet notarized by Apple.
+supported). The v0.5.0 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
 macOS may block launch; after verifying the checksum, use
 System Settings → Privacy & Security → Open Anyway *if offered*.
 Do not disable Gatekeeper.
