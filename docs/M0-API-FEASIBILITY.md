@@ -1,8 +1,9 @@
 # M0 — authenticated music integration feasibility
 
-**Status: OPEN.** The public v0.1.0 early-access app does **not**
-play audio. Technical accessibility of an unofficial API is separate
-from subscriber entitlements and permission to distribute a client.
+**Status: OPEN.** The public v0.3.0 introduces a native experimental
+AVPlayer, but full-length playback has **not** been verified on a Mac.
+Technical accessibility of an unofficial API is separate from subscriber
+entitlements and permission to distribute a client.
 
 ## Evidence
 
@@ -13,11 +14,12 @@ from subscriber entitlements and permission to distribute a client.
   are implemented. A user reported successful authorization on a real Mac.
 - The handwritten Swift adapter requests track metadata and direct raw
   source candidates. CI uses synthetic fixtures, never real credentials.
-- The v0.0.4 test with track 99338938 returned an ambiguous unavailable
-  error. v0.1.0 separates metadata-unavailable, provider HTTP 403 and
-  absence of a compatible raw stream. None proves the track is blocked
-  in the official application.
-- In-app AVPlayer playback, playlists, search and My Wave are not ready.
+- Physical-Mac v0.2.0 research with track 99338938 confirmed metadata
+  and an `aac-mp4 / hq` raw URL candidate. It did **not** confirm playable
+  media bytes, track completion or provider permission.
+- v0.3.0 adds a private, bounded in-memory HTTPS range loader to native
+  AVPlayer, with Play/Pause/Stop/Seek. Native integration is not covered
+  by end-to-end tests. Playlists, search and My Wave are not implemented.
 
 ## Boundaries
 
@@ -29,9 +31,10 @@ extraction, externally hosted token storage, DRM bypass, offline music
 or permanent copyrighted media files.
 
 API requests require ephemeral HTTPS, fixed host and redirect rejection.
-Encrypted tracks cannot be decoded by circumvention. Before native media
-playback, verify a controlled in-memory HTTP resource loader with safe
-redirect behavior and no OAuth credential forwarding.
+Encrypted tracks cannot be decoded by circumvention. The first native
+resource-loader implementation never passes an OAuth header to media
+hosts, requires allowlisted CDN HTTPS and valid partial-content responses,
+and refuses redirects. Runtime behavior remains to be verified on-device.
 
 M0 acceptance requires live account/stream proof, audio past 30 seconds
 and through completion, controls and error recovery, macOS 26/27 checks,
