@@ -2,6 +2,8 @@ name: Verify protected local signing identity
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -9,7 +11,11 @@ permissions:
 jobs:
   signing-smoke:
     name: Signed app and stable Designated Requirement (no release)
-    if: github.ref == 'refs/heads/main' && github.actor == 'StanleyLl0yd'
+    if: >-
+      github.ref == 'refs/heads/main' && github.actor == 'StanleyLl0yd' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' &&
+        startsWith(github.event.head_commit.message, 'feat(lueya): verified signing integration [smoke-only]')))
     runs-on: xcode-27
     timeout-minutes: 25
     environment: lueya-signing
