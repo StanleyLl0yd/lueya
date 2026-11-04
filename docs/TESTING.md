@@ -75,3 +75,53 @@ This archived prerelease did not contain account login, a native
 streaming engine, My Wave, search or media-key support. Current
 functionality is documented in the v0.4.0 release notes above.
 The old embed probe must not be used as a test for full-track playback.
+
+## Player interaction acceptance matrix (v0.5.0)
+
+This is the developer's verification scope, **not an end-user button-by-button checklist**.
+The owner is expected to assess the overall build; the developer owns regressions.
+Source inspection does not count as a completed on-device interaction test.
+
+| Surface | States and interactions to verify |
+| --- | --- |
+| Sign in | Hover, pressed, code request, Copy, Open sign-in page, Cancel, retry on failure |
+| Sign out | Hover, pressed, visible transition, player cancellation, Keychain removal and signed-out state |
+| Search | Focus, Return, Search press, empty input, no results, invalid query, HTTP/network failure, rapid successive queries |
+| Track rows | Hover, pressed, selecting during playback, rapid selection, long text truncation, keyboard focus and VoiceOver |
+| Play/Pause | Hover, pressed, icon change, buffering, play/resume/stop/replay, stale-source renewal |
+| Previous/Next | Disabled boundary, previous after 3 seconds, prev/next during playback, automatic queue advancement |
+| Stop/Seek/Volume | Disabled and active states, scrubbing, pause/resume after seek, clamp volume to [0,1] |
+| Quit | Hover, pressed, application exits and playback stops |
+| Accessibility | Reduce Motion, Reduce Transparency, keyboard navigation, focus, accessible labels |
+| macOS | macOS 26 and 27; native arm64 ad-hoc package, no network redirect or token leakage |
+
+Do not mark the matrix as complete until each interaction has been verified
+on an actual macOS build and relevant synthetic transport tests pass.
+The one-shot test release must be delivered only after CI and package integrity
+verification; afterward the owner-feedback freeze resumes.
+
+## Signing and session continuity (v0.5.0 and later)
+
+CI can check code identity, not the owner's existing macOS Keychain ACL.
+No real OAuth credentials or private tokens are ever used in CI.
+
+- [ ] Owner's `.p12` imported only in the protected `lueya-signing` job;
+      fingerprint matches the pinned public SHA-256 and has Code Signing EKU
+- [ ] Release ZIP contains the certificate-signed arm64 app, not the ad-hoc
+      artifact from the ordinary PR build
+- [ ] `codesign --verify --strict` and a separately resigned build-number
+      variant have identical non-cdhash Designated Requirements
+- [ ] Test one-time ad-hoc v0.4.1 → certificate-signed upgrade without
+      deleting the original Keychain item; a one-time ACL prompt is possible
+- [ ] Test two subsequent builds signed by the **same** certificate;
+      no repeated access prompt, no new Yandex login, playback resumes
+- [ ] Relaunch and Mac reboot retain the session; explicit Sign out removes
+      the Keychain entry and does not allow playback after logout
+- [ ] Expired/revoked token is distinguished from missing entitlement or
+      denied Keychain access; no silent session deletion on read failure
+- [ ] macOS Gatekeeper behavior documented separately: a self-signed
+      certificate is not Developer ID/notarization
+
+Signed-package verification remains **PENDING** until the protected signing
+smoke job has actually run with the owner's uploaded identity. The final
+macOS-session checks remain pending an actual device migration.

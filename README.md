@@ -12,25 +12,29 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Airy, warm matte-glass menu-bar interface with soft light and subtle motion.
 - Sign in to your own Yandex account using a code and the official login page.
 - Restore and end sessions securely via macOS Keychain.
-- Experimental native online playback for compatible raw AAC/MP3 tracks: Play, Pause, Stop, Seek and limited signed-source renewal.
+- Native online AAC/MP3 playback with Play/Pause, Stop, Seek, Volume and limited signed-source renewal.
+- Authenticated song/artist search, selection and a temporary in-memory next/previous queue.
 
-**v0.4.1 is a test build with gentle Play/Pause/Stop animation, updated research-only disclosures, and the previous secure stream improvements.**
-A user-owned Mac test of v0.3.1 confirmed audible playback beyond 30 seconds,
-but v0.4.1, natural track completion and renewal still need device testing.
-A source candidate alone does not guarantee full-track audio. Provider access and
-regional restrictions apply. Search, playlists and My Wave remain unavailable.
-
+**v0.5.0 is an owner-approved test build** with a compact real player,
+consistent tactile button animation (including Sign out), and search-based
+playback. The owner confirmed audible online playback on v0.4.1; search,
+queue advance, and device-level regression still require testing. No offline
+mode. Provider restrictions still apply. Playlists and My Wave remain
+unavailable. The unofficial integration is not provider-authorized.
 ## Download
 
-**Owner acceptance is pending. All development, CI/testing, release and milestone acceptance work is paused after delivery of this build until the owner reports its results.**
+**The owner explicitly authorized a signed v0.5.0 trial release.** The direct link below
+is available after successful signed-package verification and publication.
+Immediately after delivery, all development, tests, PR work and releases
+stop until the owner's verdict.
 
-**[Download lueya 0.4.1 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.1/lueya-0.4.1-macos-arm64.zip)**
+**[Download lueya 0.5.0 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.0/lueya-0.5.0-macos-arm64.zip)**
 
-[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.4.1/SHA256SUMS.txt) ·
+[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.0/SHA256SUMS.txt) ·
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27
-supported). Builds are ad-hoc signed but not yet notarized by Apple.
+supported). The v0.5.0 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
 macOS may block launch; after verifying the checksum, use
 System Settings → Privacy & Security → Open Anyway *if offered*.
 Do not disable Gatekeeper.
@@ -65,7 +69,7 @@ test binaries. No permission to redistribute project materials is implied.
 
 ## Development
 
-[Roadmap](docs/ROADMAP.md) · [Issues](https://github.com/StanleyLl0yd/lueya/issues) ·
+[Personal macOS signing](docs/SIGNING.md) · [Roadmap](docs/ROADMAP.md) · [Issues](https://github.com/StanleyLl0yd/lueya/issues) ·
 [Security](SECURITY.md)
 
 Proprietary software, **All Rights Reserved** ([license](LICENSE)).

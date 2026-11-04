@@ -1,0 +1,46 @@
+name: Verify protected local signing identity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  signing-smoke:
+    name: Signed app and stable Designated Requirement (no release)
+    if: >-
+      github.ref == 'refs/heads/main' && github.actor == 'StanleyLl0yd' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' &&
+        startsWith(github.event.head_commit.message, 'feat(lueya): verified signing integration [smoke-only]')))
+    runs-on: xcode-27
+    timeout-minutes: 25
+    environment: lueya-signing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Import pinned signing identity
+        shell: bash
+        env:
+          MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
+          MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_CERTIFICATE_SHA256: ${{ vars.MACOS_SIGNING_CERTIFICATE_SHA256 }}
+        run: bash scripts/import-signing-identity.sh
+      - name: Build, verify keychain identity and stable requirements
+        run: |
+          set -euo pipefail
+          ./scripts/package-app.sh
+          bash scripts/verify-signing-identity.sh
+      - name: Remove ephemeral signing material
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${LUEYA_CODESIGN_KEYCHAIN:-}" ]]; then
+            security delete-keychain "${LUEYA_CODESIGN_KEYCHAIN:-}" || true
+          fi
+          if [[ -n "${LUEYA_CODESIGN_P12:-}" ]]; then rm -f "${LUEYA_CODESIGN_P12:-}"; fi
+          if [[ -n "${LUEYA_CODESIGN_CERT:-}" ]]; then rm -f "${LUEYA_CODESIGN_CERT:-}"; fi

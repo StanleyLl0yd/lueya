@@ -3,6 +3,15 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.0] — owner trial
+
+- Replace track-ID experiment UI with an accessible native music player.
+- Search catalog by song/artist; start streaming from results, skip in a temporary queue, and adjust volume.
+- Apply unified hover and pressed animation to all buttons, including Sign out.
+- Keep the existing Keychain session, HTTPS streaming range guards and source renewal.
+- Add synthetic authenticated search tests; device/real-service acceptance remains open.
+- No offline media, third-party runtime dependencies, or rights assertions.
+
 ## v0.4.1
 
 Subtle animated hover/press reactions on Play/Pause/Stop, smooth native

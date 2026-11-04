@@ -18,6 +18,7 @@ final class OnlineAudioPlayback {
     private(set) var status: PlaybackStatus = .idle
     private(set) var elapsedSeconds: Double = 0
     private(set) var durationSeconds: Double = 0
+    private(set) var volume: Double = 1
 
     @ObservationIgnored private var player: AVPlayer?
     @ObservationIgnored private var asset: AVURLAsset?
@@ -32,6 +33,7 @@ final class OnlineAudioPlayback {
 
     func start(
         _ track: ResolvedTrack,
+        onFinished: @escaping @MainActor () -> Void,
         renewSource: @escaping @MainActor () async throws -> ResolvedTrack
     ) {
         stop()
@@ -56,6 +58,7 @@ final class OnlineAudioPlayback {
         let item = AVPlayerItem(asset: asset)
         let player = AVPlayer(playerItem: item)
         player.automaticallyWaitsToMinimizeStalling = true
+        player.volume = Float(volume)
 
         self.loader = handler
         self.asset = asset
@@ -101,6 +104,7 @@ final class OnlineAudioPlayback {
                 self.startupWatchdog?.cancel()
                 self.startupWatchdog = nil
                 self.status = .finished
+                onFinished()
             }
         }
         failedObserver = NotificationCenter.default.addObserver(
@@ -137,6 +141,12 @@ final class OnlineAudioPlayback {
         case .idle, .failed:
             break
         }
+    }
+
+    func setVolume(_ value: Double) {
+        guard value.isFinite else { return }
+        volume = min(1, max(0, value))
+        player?.volume = Float(volume)
     }
 
     func seek(to seconds: Double) {

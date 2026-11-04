@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 — API-first feasibility (OPEN; v0.4.0 still needs on-device playback and provider rights)
+## M0 — API-first feasibility (OPEN; playback confirmed, rights and recovery still pending)
 
 - [x] Establish native macOS 26/27 SwiftUI menu-bar shell and GitHub-only CI
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
@@ -17,7 +17,7 @@
 - [x] Implement experimental AVPlayer playback through capped in-memory HTTPS ranges, Play/Pause/Stop/Seek (v0.3.0)
 - [x] Implement bounded same-track/codec/quality renewal for expired signed media, with native generated-AAC resource-loader tests (v0.4.0, #27; on-device verification still pending)
 - [x] Confirm user-owned macOS v0.3.1 has real audible playback beyond 30 seconds (screen shows 1:17/4:09)
-- [ ] Prove natural track completion, seek, pause, expiry and network recovery on physical Mac; separately validate v0.4.0
+- [ ] Prove natural track completion, seek, pause, expiry and network recovery on physical Mac; owner confirmed v0.4.1 audio works, but no per-scenario proof yet
 - [ ] Review third-party streaming/distribution rights before M0 go/no-go
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
@@ -42,7 +42,7 @@ Exit: tested, functional, stable native app foundation.
 
 - [ ] Implement authorized provider integration
 - [ ] Play/pause/next/previous, metadata, artwork, media keys
-- [ ] Search, library and My Wave where supported and permitted
+- [ ] Validate v0.5.0 search and temporary queue on the owner's Mac; library and My Wave remain future work subject to permission
 - [ ] Session expiration, errors, recovery
 
 Exit: reproducible permitted end-to-end music playback.
@@ -71,10 +71,11 @@ Each iteration ends with a versioned, downloadable test release and a
 **hard stop**: all development, test runs, audits, milestone acceptance,
 new PR/merge/release activity and further planning are suspended until the
 owner gives explicit feedback on that exact build. Handoffs, CI completion
-and partial playback evidence never bypass the stop. v0.4.1 is the current
-owner-trial build. A narrowly scoped one-shot publish on its protected-main
-merge is permitted; all subsequent publishing requires fresh owner approval
-via manual workflow dispatch *after* the freeze is lifted.
+and partial playback evidence never bypass the stop. The owner reported v0.4.1 audio functioning on 2026-11-04 and explicitly
+authorized the next implementation iteration. v0.5.0 is an explicitly owner-approved signed trial with a **single guarded
+publish on its protected-main merge**. All subsequent publishing requires
+fresh, version-specific owner approval via manual workflow dispatch. Once the candidate is delivered,
+FULL STOP resumes until the owner gives its verdict.
 
 ## Mandatory milestone gate
 
