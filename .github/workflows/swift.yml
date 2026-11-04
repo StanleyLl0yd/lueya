@@ -36,6 +36,13 @@ jobs:
           sw_vers
           xcodebuild -version
           swift --version
+      - name: Check all signing and packaging scripts for Bash syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
       - name: Verify version and release metadata
         shell: bash
         run: |
