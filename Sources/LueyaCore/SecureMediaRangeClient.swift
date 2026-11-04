@@ -77,6 +77,12 @@ public struct BoundedEphemeralMediaTransport: MediaHTTPRangeTransport {
         guard let response = rawResponse as? HTTPURLResponse else {
             throw MediaRangeError.invalidResponse
         }
+        // Error pages are not media. Inspect only their HTTP status and URL;
+        // a 403/410 HTML body can exceed a one-byte range probe.
+        // Never buffer or expose denial bodies, cookies or signed URLs.
+        guard response.statusCode == 206 else {
+            return (Data(), response)
+        }
         if rawResponse.expectedContentLength > Int64(maximumBytes) {
             throw MediaRangeError.oversized
         }

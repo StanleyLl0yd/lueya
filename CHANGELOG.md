@@ -3,6 +3,18 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.4.0
+
+Renew short-lived signed media URLs during playback only on HTTP 410 or
+aged-source HTTP 403, using the active Keychain-backed user session. Keep
+track ID, codec, quality and resource length consistent, retry each range
+once and cap renewals to six per playback. Ignore large HTML error bodies
+when classifying HTTP denial rather than misreporting oversized media.
+Move the native asset resource loader into the tested core module and
+exercise original generated AAC with AVFoundation on both CI runners:
+206 ranges, expiry, redirects and cancellation. User-owned full-track
+audio testing and provider distribution rights remain outstanding.
+
 ## v0.3.1
 
 Handle AVPlayerItem failures and player time-control transitions even

@@ -1,7 +1,8 @@
 # M0 — authenticated music integration feasibility
 
-**Status: OPEN.** The public v0.3.0 introduces a native experimental
-AVPlayer, but full-length playback has **not** been verified on a Mac.
+**Status: OPEN.** The v0.4.0 experimental AVPlayer adds bounded signed-source
+renewal and native synthetic AAC loader tests, but full-length playback with
+user-authorized provider media has **not** been verified on a Mac.
 Technical accessibility of an unofficial API is separate from subscriber
 entitlements and permission to distribute a client.
 
@@ -18,8 +19,11 @@ entitlements and permission to distribute a client.
   and an `aac-mp4 / hq` raw URL candidate. It did **not** confirm playable
   media bytes, track completion or provider permission.
 - v0.3.0 adds a private, bounded in-memory HTTPS range loader to native
-  AVPlayer, with Play/Pause/Stop/Seek. Native integration is not covered
-  by end-to-end tests. Playlists, search and My Wave are not implemented.
+  AVPlayer, with Play/Pause/Stop/Seek. v0.4.0 adds renewal of expired
+  signed media sources through the current authenticated session, with
+  strict track/codec/quality and retry guards. Native CI uses original
+  generated AAC to test AVAsset resource-loading behavior; this is not an
+  end-to-end provider playback test. Playlists, search and My Wave are absent.
 
 ## Boundaries
 
