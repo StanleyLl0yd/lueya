@@ -1,3 +1,12 @@
+## [0.5.0] — pending owner-approved test release
+
+- Replace track-ID experiment UI with an accessible native music player.
+- Search catalog by song/artist; start streaming from results, skip in a temporary queue, and adjust volume.
+- Apply unified hover and pressed animation to all buttons, including Sign out.
+- Keep the existing Keychain session, HTTPS streaming range guards and source renewal.
+- Add synthetic authenticated search tests; device/real-service acceptance remains open.
+- No offline media, third-party runtime dependencies, or rights assertions.
+
 # Changelog
 
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
