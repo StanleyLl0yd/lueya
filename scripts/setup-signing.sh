@@ -75,6 +75,7 @@ OPENSSL_CONFIG
     openssl pkcs12 -export -inkey "$tmp/key.pem" -in "$tmp/cert.pem" \
         -name "$IDENTITY_NAME" \
         -passin env:LUEYA_SIGNING_PASS -passout env:LUEYA_SIGNING_PASS \
+        -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
         -out "$tmp/identity.p12" || fail ".p12 export failed."
     [[ ! -e "$P12" && ! -e "$CERT" ]] ||
         fail "Files appeared during generation; refusing to replace."
