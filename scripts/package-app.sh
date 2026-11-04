@@ -40,8 +40,21 @@ chmod 755 "$app/Contents/MacOS/$executable"
 /usr/bin/strip -S -x "$app/Contents/MacOS/$executable"
 
 /usr/bin/plutil -lint "$app/Contents/Info.plist"
-/usr/bin/codesign --force --sign - --entitlements "$root/$entitlements_file" "$app"
+if [[ -n "${LUEYA_CODESIGN_IDENTITY:-}" ]]; then
+    [[ -n "${LUEYA_CODESIGN_KEYCHAIN:-}" ]] || {
+        echo "Signed packaging requires a temporary signing keychain" >&2
+        exit 1
+    }
+    /usr/bin/codesign --force --sign "$LUEYA_CODESIGN_IDENTITY" \
+        --keychain "$LUEYA_CODESIGN_KEYCHAIN" \
+        --entitlements "$root/$entitlements_file" "$app"
+    /usr/bin/codesign --verify --strict "$app"
+    echo "Code-signed with pinned local research identity."
+else
+    /usr/bin/codesign --force --sign - --entitlements "$root/$entitlements_file" "$app"
+    echo "Ad-hoc CI test build; not for owner distribution."
+fi
 
 printf 'Executable bytes: %s\n' "$(stat -f %z "$app/Contents/MacOS/$executable")"
 printf 'Packaged: %s\n' "$app"
-printf '%s\n' "Ad-hoc developer test signature only; not notarized."
+printf '%s\n' "Not notarized; release permission requires owner approval."
