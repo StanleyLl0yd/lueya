@@ -52,7 +52,7 @@ final class ControlledMediaAssetLoaderTests: XCTestCase {
                 return replacement
             },
             reportError: { error in
-                XCTFail("Unexpected range error kind: \\(type(of: error))")
+                XCTFail("Unexpected range error kind: \(type(of: error))")
             }
         )
         let asset = AVURLAsset(url: loader.localURL)
@@ -141,7 +141,7 @@ final class ControlledMediaAssetLoaderTests: XCTestCase {
             reader: SecureMediaRangeClient(transport: transport),
             renewSource: { XCTFail("Fixture must not need renewal"); return self.track(url: self.newURL) },
             reportError: { error in
-                XCTFail("Unexpected synthetic media error kind: \\(type(of: error))")
+                XCTFail("Unexpected synthetic media error kind: \(type(of: error))")
             }
         )
     }
@@ -161,7 +161,7 @@ final class ControlledMediaAssetLoaderTests: XCTestCase {
 
     private func generatedAAC() throws -> Data {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("lueya-test-\\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("lueya-test-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(
             at: directory, withIntermediateDirectories: true
         )
@@ -242,14 +242,14 @@ final class ControlledMediaAssetLoaderTests: XCTestCase {
             guard parts.count == 2, let offset = Int64(parts[0]),
                   let upper = Int64(parts[1]),
                   offset >= 0, upper >= offset,
-                  offset < payload.count else { throw MediaRangeError.invalidRange }
+                  offset < Int64(payload.count) else { throw MediaRangeError.invalidRange }
             let end = min(upper, Int64(payload.count - 1))
             let chunk = payload.subdata(in: Int(offset)..<Int(end + 1))
             guard chunk.count <= maximumBytes else { throw MediaRangeError.oversized }
             let response = HTTPURLResponse(
                 url: redirectURL ?? url, statusCode: 206, httpVersion: "HTTP/1.1",
                 headerFields: [
-                    "Content-Range": "bytes \\(offset)-\\(end)/\\(payload.count)",
+                    "Content-Range": "bytes \(offset)-\(end)/\(payload.count)",
                     "Content-Type": "audio/mp4"
                 ]
             )!
