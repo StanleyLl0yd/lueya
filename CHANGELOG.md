@@ -3,6 +3,15 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.2.1
+
+Refine the accepted warm-glass interface with a gentle, low-frequency
+breathing halo in the hero artwork, a short entrance reveal, more
+responsive spring hover effects and smoother source-status changes.
+The background, colors, spacing and layout stay the same. Animation
+stops when the panel closes and respects macOS Reduce Motion.
+No new dependencies or changes to authentication, streams or storage.
+
 ## v0.2.0
 
 Warm matte-glass menu-bar redesign: cream/champagne palette, airier
