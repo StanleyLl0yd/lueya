@@ -58,3 +58,28 @@ decrypting `encraw` or bypassing access controls. If no separately
 permitted raw source is returned, the lookup fails as before.
 This does **not** establish access rights or full-length playback.
 A physical-Mac retest is necessary.
+
+## v0.3.0 native streaming experiment
+
+AVPlayer now receives a private `lueya-stream://` identity rather than
+a signed CDN URL. Its asset resource delegate obtains data through a
+separate HTTPS byte-range client that enforces the CDN allowlist,
+response origin identity, rejection of redirects, a maximum 128 KiB
+of memory per request, Content-Range and MIME verification, strict
+length checks, no cookies and no provider OAuth headers.
+
+Data remains in memory and is handed to AVFoundation in segments.
+No file downloads, offline mode, persistent media cache or decrypting
+encraw media are introduced. Play, Pause, Stop and Seek are available
+only for a resolved candidate. Replaying an expired link triggers a
+new source lookup under the user's session. Sign-out cancels playback.
+
+Physical Mac evidence before this release established raw AAC-MP4 hq
+source discovery for track 99338938, but **not actual audio bytes**.
+The resource-loading delegate and full-track end-to-end playback
+cannot be proven through the synthetic transport CI. CDN responses
+that require redirects may fail closed until reviewed; never disable
+the safety guards without a specific tested provider behavior.
+Track expiry mid-stream, network recovery and distribution rights
+still require validation. The M0 repository-wide audit and explicit
+go/no-go remain pending.
