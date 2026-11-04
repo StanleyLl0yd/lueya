@@ -44,7 +44,7 @@
 
 - Never commit passwords, tokens, cookies, signing keys, or user data.
 - Store OAuth access/refresh tokens only in local macOS Keychain. Prefer device-only Data Protection items; allow a clearly documented traditional local Keychain fallback for ad-hoc builds lacking app-ID entitlements. No iCloud synchronization. Never log, export or commit them.
-- The owner explicitly accepted experimental OAuth Device Flow using **publicly documented** Android Yandex Music application identifiers. They are not lueya credentials and can be revoked; this decision is not provider endorsement or a declaration of official API permission.
+- The owner approved experimental OAuth Device Flow with public identifiers of a first-party Music client. They are not lueya-issued credentials and can be revoked; this does not imply service approval or distribution rights.
 - No access-control/DRM bypass, scraping or private token extraction.
 - Online playback only. No offline downloading, disk-persisted music catalog or redistribution of copyrighted provider media.
 - Do not imply any official relationship with Yandex.
