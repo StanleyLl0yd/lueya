@@ -101,20 +101,17 @@ jobs:
           retention-days: 30
 
   publish-release:
-    name: Publish immutable SemVer GitHub Release
-    # Exactly one push-triggered test release is authorized for v0.4.1.
-    # Afterwards, publishing is manual and only after the owner's test verdict.
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-       startsWith(github.event.head_commit.message, 'test(lueya): owner trial v0.4.1 [one-shot-release]'))
+    name: Owner-approved, certificate-signed GitHub Release
+    # NEVER publish on a push, merge, PR, smoke test or automatic handoff.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: native
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: xcode-27
+    timeout-minutes: 30
+    environment: lueya-signing
     permissions:
       contents: write
     steps:
-      - name: Require explicit owner's approval for this exact release
+      - name: Require repository-owner confirmation for this exact version
         shell: bash
         env:
           RELEASE_ACTOR: ${{ github.actor }}
@@ -122,83 +119,86 @@ jobs:
           RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            # Authorized only for this precise owner trial transition.
-            test "$GITHUB_REF" = "refs/heads/main"
-            echo "One-shot v0.4.1 test release; freeze after delivery"
-          else
-            [[ "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
-              echo "::error::Only the repository owner can approve a release"
-              exit 1
-            }
-            [[ "$REQUESTED_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
-              echo "::error::Approval must target a numeric SemVer"
-              exit 1
-            }
-            [[ "$RELEASE_CONFIRMATION" == "APPROVE-v$REQUESTED_VERSION" ]] || {
-              echo "::error::No matching explicit release confirmation"
-              exit 1
-            }
-          fi
+          [[ "$GITHUB_REF" == "refs/heads/main" && "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
+            echo "::error::Only owner-approved main releases are allowed"
+            exit 1
+          }
+          [[ "$REQUESTED_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
+          [[ "$RELEASE_CONFIRMATION" == "APPROVE-v$REQUESTED_VERSION" ]] || {
+            echo "::error::Missing matching explicit owner confirmation"
+            exit 1
+          }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Identify versioned archive
-        id: versioned
+      - name: Validate version metadata and reject previously published versions
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.release_version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          version="$(python3 -c 'import plistlib; print(plistlib.load(open("App/Info.plist","rb"))["CFBundleShortVersionString"])')"
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            [[ "$version" == "0.4.1" ]] || {
-              echo "::error::One-shot test publish applies only to v0.4.1"
-              exit 1
-            }
-          else
-            test "$version" = "${{ inputs.release_version }}" || {
-              echo "::error::Approved version differs from the app version"
-              exit 1
-            }
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
+          test "$version" = "$REQUESTED_VERSION"
+          test -s "docs/releases/v$version.md"
+          if gh release view "v$version" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Immutable release v$version already exists"
+            exit 1
           fi
-          echo "asset=lueya-$version-macos-arm64.zip" >> "$GITHUB_OUTPUT"
-      - name: Download verified versioned ZIP
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ${{ steps.versioned.outputs.asset }}
-          path: release
-          skip-decompress: true
-      - name: Verify ZIP and record SHA256
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+            echo "::error::Tag v$version already exists"
+            exit 1
+          fi
+      - name: Import pinned signing identity from protected Environment
+        shell: bash
+        env:
+          MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
+          MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_CERTIFICATE_SHA256: ${{ vars.MACOS_SIGNING_CERTIFICATE_SHA256 }}
+        run: bash scripts/import-signing-identity.sh
+      - name: Build and sign distributable macOS app
+        run: |
+          set -euo pipefail
+          ./scripts/package-app.sh
+          bash scripts/verify-signing-identity.sh
+      - name: Verify released archive contains signed arm64 app
         shell: bash
         run: |
           set -euo pipefail
-          version="$(python3 -c 'import plistlib; print(plistlib.load(open("App/Info.plist","rb"))["CFBundleShortVersionString"])')"
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
           asset="lueya-$version-macos-arm64.zip"
-          test -s "release/$asset"
-          unzip -tq "release/$asset" >/dev/null
-          (cd release && sha256sum "$asset" > SHA256SUMS.txt)
-      - name: Publish a new immutable regular release
+          mkdir -p release
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
+            "dist/lueya.app" "release/$asset"
+          scratch="$(mktemp -d)"
+          trap 'rm -rf "$scratch"' EXIT
+          /usr/bin/ditto -x -k "release/$asset" "$scratch"
+          /usr/bin/codesign --verify --strict "$scratch/lueya.app"
+          test "$(/usr/bin/lipo -archs "$scratch/lueya.app/Contents/MacOS/LueyaApp")" = "arm64"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$scratch/lueya.app/Contents/Info.plist")" = "$version"
+          /usr/bin/codesign -dr - "$scratch/lueya.app" 2>&1 |
+            grep -F 'com.stanleylloyd.lueya'
+          (cd release && shasum -a 256 "$asset" > SHA256SUMS.txt)
+      - name: Publish immutable signed ZIP after all validations
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          version="$(python3 -c 'import plistlib; print(plistlib.load(open("App/Info.plist","rb"))["CFBundleShortVersionString"])')"
-          tag="v$version"
-          notes="docs/releases/$tag.md"
-          asset="lueya-$version-macos-arm64.zip"
-          test -s "$notes"
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "::notice::Release $tag already exists; refusing to overwrite versioned assets"
-            exit 0
-          fi
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
-            echo "::error::Tag $tag exists without release; refusing to mutate it"
-            exit 1
-          fi
-          gh release create "$tag" \
-            "release/$asset" release/SHA256SUMS.txt \
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
+          gh release create "v$version" \
+            "release/lueya-$version-macos-arm64.zip" release/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --latest \
-            --title "lueya $tag" \
-            --notes-file "$notes"
+            --title "lueya v$version" \
+            --notes-file "docs/releases/v$version.md"
+      - name: Remove temporary signing keychain and decoded identity
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "$LUEYA_CODESIGN_KEYCHAIN" ]]; then
+            security delete-keychain "$LUEYA_CODESIGN_KEYCHAIN" || true
+          fi
+          if [[ -n "$LUEYA_CODESIGN_P12" ]]; then rm -f "$LUEYA_CODESIGN_P12"; fi
+          if [[ -n "$LUEYA_CODESIGN_CERT" ]]; then rm -f "$LUEYA_CODESIGN_CERT"; fi
