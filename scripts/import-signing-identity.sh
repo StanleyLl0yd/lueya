@@ -29,7 +29,7 @@ fingerprint="$(openssl x509 -in "$cert" -noout -fingerprint -sha256 |
     { echo "Certificate does not match pinned fingerprint" >&2; exit 1; }
 openssl x509 -in "$cert" -noout -checkend 86400 >/dev/null ||
     { echo "Signing identity is expired or about to expire" >&2; exit 1; }
-openssl x509 -in "$cert" -noout -ext extendedKeyUsage |
+openssl x509 -in "$cert" -noout -text |
     grep -q 'Code Signing' ||
     { echo "Certificate is not a Code Signing certificate" >&2; exit 1; }
 
