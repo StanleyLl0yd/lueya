@@ -12,6 +12,8 @@ struct PlayerPreview: View {
     @State private var draftSeekSeconds: Double?
     @State private var openHovered = false
     @State private var checkHovered = false
+    @State private var playHovered = false
+    @State private var stopHovered = false
     @State private var contentRevealed = false
     @State private var heroBreathing = false
 
@@ -345,31 +347,57 @@ struct PlayerPreview: View {
                     Button {
                         signIn.playOrPause()
                     } label: {
-                        Label(playActionLabel, systemImage: playActionIcon)
-                            .font(.system(size: 11, weight: .medium))
-                            .padding(.horizontal, 12)
-                            .frame(height: 32)
-                            .background(
-                                accent.opacity(0.12),
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            )
+                        HStack(spacing: 7) {
+                            Image(systemName: playActionIcon)
+                                .contentTransition(.symbolEffect(.replace))
+                            Text(playActionLabel)
+                                .contentTransition(.opacity)
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                        .background(
+                            accent.opacity(playHovered ? 0.18 : 0.12),
+                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        )
+                        .animation(
+                            reduceMotion ? nil : .easeInOut(duration: 0.20),
+                            value: playActionIcon
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PlaybackControlButtonStyle(reduceMotion: reduceMotion))
+                    .onHover { playHovered = $0 }
+                    .scaleEffect(playHovered && !reduceMotion ? 1.025 : 1)
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82),
+                        value: playHovered
+                    )
                     .accessibilityHint("Experimental online playback with your authorized account")
 
                     if signIn.playback.status != .idle {
                         Button {
+                            stopHovered = false
                             signIn.stopPlayback()
                         } label: {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 11))
                                 .frame(width: 32, height: 32)
                                 .background(
-                                    .white.opacity(0.48),
+                                    .white.opacity(stopHovered ? 0.78 : 0.48),
                                     in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlaybackControlButtonStyle(reduceMotion: reduceMotion))
+                        .onHover { stopHovered = $0 }
+                        .scaleEffect(stopHovered && !reduceMotion ? 1.045 : 1)
+                        .animation(
+                            reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82),
+                            value: stopHovered
+                        )
+                        .transition(
+                            reduceMotion ? .identity :
+                                .opacity.combined(with: .scale(scale: 0.92))
+                        )
                         .accessibilityLabel("Stop playback")
                     }
 
@@ -380,6 +408,10 @@ struct PlayerPreview: View {
                         .foregroundStyle(secondary)
                         .monospacedDigit()
                 }
+                .animation(
+                    reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.85),
+                    value: stopButtonVisible
+                )
 
                 if signIn.playback.durationSeconds > 0,
                    signIn.playback.status != .idle {
@@ -418,6 +450,10 @@ struct PlayerPreview: View {
             }
             .padding(.vertical, 4)
         }
+    }
+
+    private var stopButtonVisible: Bool {
+        signIn.playback.status != .idle
     }
 
     private var playbackHasError: Bool {
@@ -537,5 +573,21 @@ struct PlayerPreview: View {
         }
         .clipShape(shape)
         .shadow(color: accent.opacity(0.11), radius: 25, x: 0, y: 12)
+    }
+}
+
+
+/// Retains the native quiet-glass appearance while giving controls tactile feedback.
+private struct PlaybackControlButtonStyle: ButtonStyle {
+    let reduceMotion: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.955 : 1)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.76),
+                value: configuration.isPressed
+            )
     }
 }

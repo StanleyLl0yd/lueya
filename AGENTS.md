@@ -31,8 +31,19 @@
 - Code and code comments are in English.
 - Build/test on both supported macOS versions when available.
 - Do not claim a visual shell or a metadata/source check is a working player.
-- From v0.1.0 follow Semantic Versioning. Publish immutable permanent GitHub
-  Release assets only after both protected-main macOS CI jobs pass.
+- From v0.1.0 follow Semantic Versioning. Deliver a complete, versioned,
+  downloadable **test release** for the owner to evaluate, then immediately
+  **STOP all further development, code changes, CI/test runs, audits, PR merges,
+  releases, milestone acceptance and roadmapping work** until the owner
+  provides their verdict on that exact version. No exceptions for a handoff,
+  new conversation, completed CI or an obvious next task. Do not infer
+  acceptance from silence or from a partial screenshot.
+- The current test build is v0.4.1. It has one explicitly authorized
+  test-publishing transition; no further automatic releases are allowed.
+  After delivery, workflow_dispatch for later releases requires the repository
+  owner's explicit version-specific confirmation and may only be run after
+  the owner has lifted the testing freeze.
+- Every release asset must be immutable and use a permanent direct URL.
 - Every distributed ZIP and future DMG filename must contain the exact version:
   `lueya-<version>-macos-arm64.zip` and `lueya-<version>-macos-arm64.dmg`.
   Link directly to the versioned asset; update both READMEs for every release.
