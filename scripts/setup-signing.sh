@@ -90,7 +90,7 @@ export LUEYA_SIGNING_PASS
 openssl pkcs12 -in "$P12" -passin env:LUEYA_SIGNING_PASS \
     -nokeys -out "$tmp/extracted.pem" >/dev/null 2>&1 ||
     fail "Wrong password or invalid .p12."
-openssl x509 -in "$tmp/extracted.pem" -noout -ext extendedKeyUsage |
+openssl x509 -in "$tmp/extracted.pem" -noout -text |
     grep -q 'Code Signing' || fail "Code Signing EKU is missing."
 openssl x509 -in "$tmp/extracted.pem" -outform DER -out "$tmp/extracted.cer"
 cmp -s "$tmp/extracted.cer" "$CERT" ||
