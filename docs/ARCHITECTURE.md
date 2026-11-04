@@ -1,6 +1,6 @@
 # Architecture
 
-Status: v0.3.0 experimental AVFoundation playback; M0 OPEN pending real full-track evidence, provider rights and repository-wide acceptance audit.
+Status: v0.4.0 experimental AVFoundation playback and signed-source recovery; M0 OPEN pending real full-track evidence, provider rights and repository-wide acceptance audit.
 
 ## Platform and toolchain
 
@@ -14,7 +14,7 @@ Status: v0.3.0 experimental AVFoundation playback; M0 OPEN pending real full-tra
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
 - `PlayerPreview`: warm matte-glass menu with source checking, experimental playback controls, dynamic version footer and accessibility settings
-- `LueyaCore`: account/OAuth/Keychain, source negotiation and `SecureMediaRangeClient` for ephemeral 128-KiB media chunks and strict CDN/response validation
+- `LueyaCore`: account/OAuth/Keychain, source negotiation, bounded CDN range transport, native resource-loader bridge, and fail-closed signed-source renewal policy
 - `OnlineAudioPlayback`: native AVPlayer through a private in-memory resource delegate, play/pause/stop/seek, cancellation on sign-out
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
 - `scripts/package-app.sh`: size-optimized arm64 app, stripped before ad-hoc signing
@@ -22,8 +22,9 @@ Status: v0.3.0 experimental AVFoundation playback; M0 OPEN pending real full-tra
 
 The AVPlayer path has no physical-Mac end-to-end playback evidence.
 A user has confirmed login and raw AAC-MP4 hq source discovery; actual
-bytes, decoding, seek, expiry, interruptions and track completion remain
-unverified. Synthetic CI alone cannot prove audio functionality.
+full audio playback, seek, expiry, interruptions and track completion remain
+unverified on user hardware. CI now includes native generated-AAC AVAsset
+resource-loader tests; they do not prove real provider delivery.
 No queue, search, My Wave, library or media-key controls yet.
 Outbound HTTPS is limited by application policy and sandbox entitlements.
 

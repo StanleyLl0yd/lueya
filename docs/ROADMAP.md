@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 — API-first feasibility (OPEN; v0.3.0 experimental playback needs on-device proof)
+## M0 — API-first feasibility (OPEN; v0.4.0 still needs on-device playback and provider rights)
 
 - [x] Establish native macOS 26/27 SwiftUI menu-bar shell and GitHub-only CI
 - [x] Document anonymous shared-track preview limits and de-scope further WebKit probe testing (#6)
@@ -15,6 +15,7 @@
 - [x] User test of track 99338938 on v0.1.1: metadata accepted; quality-specific hq raw source returned HTTP 403
 - [x] User macOS v0.2.0 test: 99338938 yields an AAC-MP4 hq source candidate; actual audio still untested
 - [x] Implement experimental AVPlayer playback through capped in-memory HTTPS ranges, Play/Pause/Stop/Seek (v0.3.0)
+- [x] Implement bounded same-track/codec/quality renewal for expired signed media, with native generated-AAC resource-loader tests (v0.4.0, #27; on-device verification still pending)
 - [ ] Prove full track beyond 30s and through completion, including seek, pause, expiry and network recovery on physical Mac
 - [ ] Review third-party streaming/distribution rights before M0 go/no-go
 - [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally

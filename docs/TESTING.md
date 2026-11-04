@@ -4,7 +4,7 @@
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
 [here](M0-API-FEASIBILITY.md). The historical OAuth experiment is documented [here](AUTH-RESEARCH-RELEASE-NOTES.md).
-The current experimental native playback build is [v0.3.0](releases/v0.3.0.md).
+The current experimental native playback build is [v0.4.0](releases/v0.4.0.md).
 Use the current release for M0 audio tests; the old embed tests below are
 preserved as historical evidence only.
 
@@ -73,5 +73,5 @@ Do not perform additional manual tests for this legacy probe.
 
 This archived prerelease did not contain account login, a native
 streaming engine, My Wave, search or media-key support. Current
-functionality is documented in the v0.3.0 release notes above.
+functionality is documented in the v0.4.0 release notes above.
 The old embed probe must not be used as a test for full-track playback.

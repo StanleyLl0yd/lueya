@@ -1,6 +1,6 @@
 # M0 — raw streaming source negotiation
 
-Status: **experimental metadata check, not audio playback**.
+Status: **experimental native streaming; full-track real-world playback not proven**.
 
 The native Swift 6 adapter requests user-authorized metadata and signed
 short-lived source candidates through an unofficial interface. It tries
@@ -22,9 +22,9 @@ unsupported; the app does not use decryption keys or bypass DRM.
   redacted from debug descriptions and never displayed, logged or saved.
 - Media links are short-lived; local freshness checks are conservative,
   not a guarantee of server validity.
-- Do **not** hand provider URLs straight to AVPlayer before implementing
-  a verified redirect-controlled, in-memory loading boundary that
-  cannot forward OAuth authorization to arbitrary hosts.
+- Never hand signed provider URLs directly to AVPlayer: keep the private
+  redirect-controlled, in-memory resource loader that never sends OAuth
+  authorization to media hosts.
 - **Online only:** no offline cache, persistent audio or downloads.
 
 ## Real-device diagnostic
@@ -83,3 +83,21 @@ the safety guards without a specific tested provider behavior.
 Track expiry mid-stream, network recovery and distribution rights
 still require validation. The M0 repository-wide audit and explicit
 go/no-go remain pending.
+
+
+## v0.4.0 signed-source expiry recovery (pending user trial)
+
+The native AVAsset resource loader is now covered with original, generated
+AAC fixtures in macOS 26 and Xcode 27 CI. Tests exercise bounded 206
+ranges, replacement on HTTP 410, rejected redirected responses, cancellation
+and an AVPlayer seek. The client renews an existing same-track source
+only after HTTP 410 or an aged-source HTTP 403. Provider re-resolution uses
+the current user Keychain session, never sends OAuth to CDN URLs, requires
+the same track ID, codec and quality and checks byte length per range.
+Each failed range retries at most once, with six renewals per playback.
+
+HTTP error bodies are not treated as audio chunks; this avoids misclassifying
+large error pages as oversized media. Nothing is persisted for offline use.
+All these tests are synthetic, not proof of full-track playback using a real
+account or provider permission. On-device expiry/seek/network and independent
+distribution rights remain open under #16 and #27.
