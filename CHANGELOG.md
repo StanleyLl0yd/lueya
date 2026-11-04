@@ -3,6 +3,15 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.3.1
+
+Handle AVPlayerItem failures and player time-control transitions even
+before playback time advances. Add a cancellable 15-second startup
+watchdog, guard stale resource-loader errors after track replacement,
+and never expose sensitive system decoder error text. Native
+Play/Pause/Stop/Seek and secure memory-only streaming remain unchanged.
+End-to-end playback still requires a user's Mac test.
+
 ## v0.3.0
 
 Experimental native online audio using AVPlayer and a private resource loader,
