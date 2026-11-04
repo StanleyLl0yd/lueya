@@ -15,6 +15,11 @@ on:
         type: string
         required: true
 
+# Superseded PR runs may not delay the exact-head release gate.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
