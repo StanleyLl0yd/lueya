@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: 'Owner-approved SemVer to publish (without v prefix)'
+        description: 'SemVer for optional owner-dispatched release (without v prefix)'
         type: string
         required: true
       release_confirmation:
-        description: 'Type APPROVE-vX.Y.Z after accepting the release'
+        description: 'Manual dispatch only: enter APPROVE-vX.Y.Z'
         type: string
         required: true
 
@@ -114,13 +114,13 @@ jobs:
 
   publish-release:
     name: Owner-approved, certificate-signed GitHub Release
-    # One owner-approved v0.5.0 trial on guarded merge; later releases manual only.
+    # Owner feedback on v0.5.0 authorizes one signed v0.5.1 trial; no extra approval.
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'push' &&
         startsWith(github.event.head_commit.message,
-                   'test(lueya): owner-approved v0.5.0 signed trial [one-shot]')))
+                   'test(lueya): owner-feedback v0.5.1 signed trial [one-shot]')))
     needs: native
     runs-on: xcode-27
     timeout-minutes: 30
@@ -139,9 +139,9 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_REF" == "refs/heads/main" ]] || exit 1
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            # Explicit owner approval for this single version is captured by the
-            # guarded merge marker. No future versions are auto-published.
-            [[ "$APPROVED_COMMIT_MESSAGE" == "test(lueya): owner-approved v0.5.0 signed trial [one-shot]"* ]] || exit 1
+            # Feedback on v0.5.0 authorizes one guarded version-specific release.
+            # No unrelated push may publish, and the next cycle awaits feedback.
+            [[ "$APPROVED_COMMIT_MESSAGE" == "test(lueya): owner-feedback v0.5.1 signed trial [one-shot]"* ]] || exit 1
             [[ -z "$REQUESTED_VERSION" && -z "$RELEASE_CONFIRMATION" ]] || exit 1
           else
             [[ "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
@@ -166,7 +166,7 @@ jobs:
           set -euo pipefail
           version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            test "$version" = "0.5.0"
+            test "$version" = "0.5.1"
           else
             test "$version" = "$REQUESTED_VERSION"
           fi

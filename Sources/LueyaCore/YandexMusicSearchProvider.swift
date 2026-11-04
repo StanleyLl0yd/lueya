@@ -50,12 +50,24 @@ public struct YandexMusicSearchProvider: Sendable {
               accessToken.utf8.allSatisfy({ $0 >= 0x21 && $0 <= 0x7e }) else {
             throw MusicSearchError.invalidToken
         }
+        let tracks = try await fetchTracks(
+            matching: query, type: "track", accessToken: accessToken
+        )
+        if !tracks.isEmpty { return tracks }
+        return try await fetchTracks(
+            matching: query, type: "all", accessToken: accessToken
+        )
+    }
+
+    private func fetchTracks(
+        matching query: String, type: String, accessToken: String
+    ) async throws -> [MusicSearchTrack] {
         try Task.checkCancellation()
 
         var urlParts = URLComponents(url: Self.origin, resolvingAgainstBaseURL: false)!
         urlParts.queryItems = [
             URLQueryItem(name: "text", value: query),
-            URLQueryItem(name: "type", value: "track"),
+            URLQueryItem(name: "type", value: type),
             URLQueryItem(name: "page", value: "0")
         ]
         guard let url = urlParts.url else { throw MusicSearchError.invalidQuery }

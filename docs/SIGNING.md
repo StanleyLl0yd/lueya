@@ -54,7 +54,8 @@ versioned ZIP, logs or published GitHub Release.
   independently resigned app with a new build number has the **same**
   Designated Requirement. The smoke test never creates a release.
 - The `publish-release` job in `swift.yml` imports the same pinned
-  identity only after `workflow_dispatch` from the owner with a matching
+  identity after either a version-specific owner-feedback guarded merge,
+  or an optional owner-initiated `workflow_dispatch` with matching
   `release_version` and `release_confirmation`. Release publishing is
   never triggered on pushes or PR merges.
 - Release ZIPs must contain **certificate-signed**, verified arm64 applications;
@@ -83,10 +84,12 @@ and permitted by the active OAuth flow.
 
 ## Owner test / release gate
 
-This work is **preparation** for an unreleased version. Do not invoke the
-publishing workflow or mark any milestone accepted without the owner's explicit
-version-specific go-ahead. After an approved version is handed over, stop all
-development, CI/testing, audits and further releases until the owner's verdict.
+The owner now authorizes each complete repair-and-release cycle by providing
+feedback about the previous delivered build (2026-11-05). No separate
+version-specific permission is needed. Use the guarded single-version
+merge marker and require passing exact-head CI before releasing. Once the
+signed build is delivered, stop development, CI/testing, audits and further
+releases until the owner's next feedback. Feedback does not imply acceptance.
 
 References: Apple's Code Signing Guide and TN3127/Code Signing Requirements,
 GitHub's deployment environment and GitHub CLI secret documentation.
