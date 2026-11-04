@@ -2,25 +2,21 @@ import AppKit
 import LueyaCore
 import SwiftUI
 
+/// The compact menu-bar player. No diagnostic track IDs or external-site buttons.
 struct PlayerPreview: View {
     let signIn: MusicSignInModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    @State private var probeTrackID = ""
+    @State private var query = ""
     @State private var draftSeekSeconds: Double?
-    @State private var openHovered = false
-    @State private var checkHovered = false
-    @State private var playHovered = false
-    @State private var stopHovered = false
     @State private var contentRevealed = false
-    @State private var heroBreathing = false
+    @State private var breathing = false
 
     private let ink = Color(red: 0.26, green: 0.23, blue: 0.21)
     private let secondary = Color(red: 0.47, green: 0.43, blue: 0.40)
     private let accent = Color(red: 0.62, green: 0.45, blue: 0.29)
-    private let rim = Color.white.opacity(0.78)
 
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -29,27 +25,38 @@ struct PlayerPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+                .padding(.bottom, 20)
 
-            hero
-                .padding(.top, 24)
-                .opacity(contentRevealed || reduceMotion ? 1 : 0)
-                .offset(y: contentRevealed || reduceMotion ? 0 : 7)
-
-            divider
-                .padding(.vertical, 23)
-
-            listeningSection
-
-            divider
-                .padding(.vertical, 22)
-
-            accountSection
+            Group {
+                switch signIn.status {
+                case .restoring:
+                    statusLine("Restoring your listening space…", symbol: "clock")
+                case .signedOut:
+                    signedOutContent
+                case .signingOut:
+                    statusLine("Signing out…", symbol: "hourglass")
+                case .requestingCode:
+                    statusLine("Preparing a sign-in code…", symbol: "hourglass")
+                case .awaitingAuthorization:
+                    authorizationContent
+                case .signedIn(let account):
+                    signedInContent(account: account)
+                case .failed(let message):
+                    VStack(alignment: .leading, spacing: 13) {
+                        statusLine(message, symbol: "info.circle")
+                        Button("Try again") { signIn.signIn() }
+                            .buttonStyle(QuietGlassButtonStyle(surface: .filled))
+                    }
+                }
+            }
+            .opacity(contentRevealed || reduceMotion ? 1 : 0)
+            .offset(y: contentRevealed || reduceMotion ? 0 : 5)
 
             footer
-                .padding(.top, 23)
+                .padding(.top, 18)
         }
-        .padding(22)
-        .frame(width: 366)
+        .padding(21)
+        .frame(width: 382)
         .foregroundStyle(ink)
         .background { warmGlass }
         .environment(\.colorScheme, .light)
@@ -68,429 +75,461 @@ struct PlayerPreview: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 9) {
+        HStack(spacing: 9) {
             Image(systemName: "waveform.path")
-                .font(.system(size: 17, weight: .regular))
+                .font(.system(size: 17))
                 .foregroundStyle(accent)
                 .accessibilityHidden(true)
-
             Text("lueya")
                 .font(.system(size: 19, weight: .medium, design: .rounded))
                 .tracking(0.3)
-
             Spacer()
-
-            Text("EARLY ACCESS")
+            Text("YOUR MUSIC, QUIETLY")
                 .font(.system(size: 9, weight: .semibold))
-                .tracking(1.5)
+                .tracking(1.2)
                 .foregroundStyle(secondary)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var hero: some View {
-        HStack(alignment: .center, spacing: 18) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.86),
-                                Color(red: 0.89, green: 0.80, blue: 0.68).opacity(0.54)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .strokeBorder(rim, lineWidth: 1)
-                    }
-
-                Circle()
-                    .fill(accent.opacity(heroBreathing && !reduceMotion ? 0.16 : 0.09))
-                    .blur(radius: heroBreathing && !reduceMotion ? 19 : 13)
-                    .frame(width: 70, height: 70)
-                    .scaleEffect(heroBreathing && !reduceMotion ? 1.09 : 0.95)
-
-                Circle()
-                    .strokeBorder(accent.opacity(heroBreathing && !reduceMotion ? 0.38 : 0.24), lineWidth: 1)
-                    .frame(width: 72, height: 72)
-                    .scaleEffect(heroBreathing && !reduceMotion ? 1.06 : 0.96)
-
-                Circle()
-                    .fill(.white.opacity(0.42))
-                    .frame(width: 51, height: 51)
-
-                Image(systemName: "waveform")
-                    .font(.system(size: 24, weight: .ultraLight))
-                    .foregroundStyle(accent)
-                    .scaleEffect(heroBreathing && !reduceMotion ? 1.06 : 0.96)
-            }
-            .frame(width: 96, height: 96)
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text("a softer way\nto listen.")
-                    .font(.system(size: 20, weight: .medium, design: .rounded))
-                    .tracking(-0.4)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("Your listening space,\nwithout the noise.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
         }
     }
 
-    private var listeningSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Experimental online playback", systemImage: "sparkle")
-                .font(.system(size: 11))
-                .foregroundStyle(secondary)
-
-            Button {
-                let destination = OfficialMusicSite.home
-                guard OfficialMusicSite.isTrusted(destination) else { return }
-                NSWorkspace.shared.open(destination)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 11, weight: .medium))
-                    Text("Open Yandex Music")
-                        .font(.system(size: 12, weight: .medium))
-                    Spacer()
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 11, weight: .regular))
+    private var signedOutContent: some View {
+        VStack(alignment: .leading, spacing: 17) {
+            HStack(spacing: 17) {
+                artwork(isPlaying: false)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("a softer way\nto listen.")
+                        .font(.system(size: 21, weight: .medium, design: .rounded))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Your listening space,\nwithout the noise.")
+                        .font(.system(size: 11))
                         .foregroundStyle(secondary)
                 }
-                .foregroundStyle(ink)
-                .padding(.horizontal, 14)
-                .frame(height: 43)
-                .background(
-                    .white.opacity(openHovered ? 0.78 : 0.50),
-                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .strokeBorder(rim.opacity(0.95), lineWidth: 1)
-                }
-                .scaleEffect(openHovered && !reduceMotion ? 1.016 : 1)
-                .offset(y: openHovered && !reduceMotion ? -1 : 0)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .onHover { openHovered = $0 }
-            .animation(
-                reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.82),
-                value: openHovered
-            )
-            .accessibilityHint("Opens the official Yandex Music website in your default browser")
+            Button {
+                signIn.signIn()
+            } label: {
+                HStack {
+                    Image(systemName: "person.crop.circle")
+                    Text("Sign in with Yandex")
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                }
+                .font(.system(size: 12, weight: .medium))
+                .padding(.horizontal, 14)
+                .frame(height: 42)
+            }
+            .buttonStyle(QuietGlassButtonStyle(surface: .filled))
+            .accessibilityHint("Authorize with your own Yandex account")
         }
-    }
-
-    private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("YOUR ACCOUNT")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(1.35)
-                .foregroundStyle(secondary)
-
-            accountControls
-        }
-        .animation(
-            reduceMotion ? nil : .easeInOut(duration: 0.25),
-            value: sourcePhase
-        )
     }
 
     @ViewBuilder
-    private var accountControls: some View {
-        switch signIn.status {
-        case .restoring:
-            stateLabel("Restoring your session…", icon: "clock")
-        case .signedOut:
-            Button("Sign in with Yandex") { signIn.signIn() }
-                .font(.system(size: 12, weight: .medium))
-        case .requestingCode:
-            stateLabel("Requesting a sign-in code…", icon: "hourglass")
-        case .awaitingAuthorization:
-            if let code = signIn.code {
-                Text("Enter this code on Yandex's sign-in page:")
-                    .font(.system(size: 11))
-                    .foregroundStyle(secondary)
-
-                HStack {
+    private var authorizationContent: some View {
+        if let code = signIn.code {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Enter this code on Yandex's sign-in page")
+                    .font(.system(size: 12, weight: .medium))
+                HStack(spacing: 10) {
                     Text(code.userCode)
-                        .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 19, weight: .semibold, design: .monospaced))
                         .textSelection(.enabled)
                     Spacer()
-                    Button("Copy") {
+                    Button {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(code.userCode, forType: .string)
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(8)
                     }
-                    .font(.system(size: 11))
+                    .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
                 }
-
-                Button("Open authorization page") {
+                Button {
                     guard YandexOAuthClient.isTrustedVerificationURL(code.verificationURL) else {
                         return
                     }
                     NSWorkspace.shared.open(code.verificationURL)
+                } label: {
+                    Label("Open sign-in page", systemImage: "arrow.up.right.square")
+                        .font(.system(size: 12, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 38)
                 }
-                .font(.system(size: 11))
-
+                .buttonStyle(QuietGlassButtonStyle(surface: .filled))
                 Button("Cancel") { signIn.cancelSignIn() }
                     .font(.system(size: 11))
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
             }
-        case .signedIn(let account):
-            VStack(alignment: .leading, spacing: 11) {
-                Label("Signed in: \(account)", systemImage: "checkmark.circle")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(ink)
-                    .lineLimit(2)
+        }
+    }
 
-                Text("Check an authorized track to try online playback")
-                    .font(.system(size: 11))
-                    .foregroundStyle(secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 9) {
-                    TextField("Numeric track ID", text: $probeTrackID)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 12))
-                        .padding(.horizontal, 11)
-                        .frame(height: 36)
-                        .background(
-                            .white.opacity(0.66),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(accent.opacity(0.17), lineWidth: 1)
-                        }
-                        .accessibilityLabel("Numeric Yandex Music track ID")
-                        .onSubmit { signIn.checkStreamSource(trackID: probeTrackID) }
-
-                    Button {
-                        signIn.checkStreamSource(trackID: probeTrackID)
-                    } label: {
-                        Text("Check")
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(minWidth: 43, minHeight: 36)
-                            .padding(.horizontal, 8)
-                            .background(
-                                accent.opacity(checkHovered ? 0.18 : 0.09),
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(probeTrackID.isEmpty)
-                    .onHover { checkHovered = $0 }
-                    .scaleEffect(checkHovered && !reduceMotion ? 1.035 : 1)
-                    .offset(y: checkHovered && !reduceMotion ? -1 : 0)
-                    .animation(
-                        reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.8),
-                        value: checkHovered
-                    )
-                    .accessibilityHint("Checks streaming source availability without playing audio")
-                }
-
-                sourceResult
-                playbackControls
-
+    private func signedInContent(account: String) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            playerSection
+            divider
+            searchSection
+            divider
+            HStack(spacing: 9) {
+                Image(systemName: "checkmark.circle")
+                    .foregroundStyle(accent)
+                Text(account)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
                 Button("Sign out") { signIn.signOut() }
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(secondary)
-                    .padding(.top, 2)
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                    .accessibilityHint("Remove the local Keychain session")
             }
-        case .failed(let message):
-            Text(message)
-                .font(.system(size: 11))
-                .foregroundStyle(secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Try sign-in again") { signIn.signIn() }
-                .font(.system(size: 11, weight: .medium))
+            .font(.system(size: 11))
+            .foregroundStyle(secondary)
         }
     }
 
-    @ViewBuilder
-    private var sourceResult: some View {
-        switch signIn.sourceProbe {
-        case .idle:
-            EmptyView()
-        case .checking:
-            stateLabel("Checking source…", icon: "hourglass")
-        case .verified(let title, let detail):
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(2)
-                Text(detail)
-                    .font(.system(size: 10))
-                    .foregroundStyle(secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.top, 1)
-        case .failed(let message):
-            stateLabel(message, icon: "info.circle")
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
+    private var playerSection: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 15) {
+                artwork(isPlaying: signIn.playback.status == .playing)
+                    .frame(width: 78, height: 78)
 
-    @ViewBuilder
-    private var playbackControls: some View {
-        if case .verified = signIn.sourceProbe {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 9) {
-                    Button {
-                        signIn.playOrPause()
-                    } label: {
-                        HStack(spacing: 7) {
-                            Image(systemName: playActionIcon)
-                                .contentTransition(.symbolEffect(.replace))
-                            Text(playActionLabel)
-                                .contentTransition(.opacity)
-                        }
-                        .font(.system(size: 11, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .frame(height: 32)
-                        .background(
-                            accent.opacity(playHovered ? 0.18 : 0.12),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-                        .animation(
-                            reduceMotion ? nil : .easeInOut(duration: 0.20),
-                            value: playActionIcon
-                        )
-                    }
-                    .buttonStyle(PlaybackControlButtonStyle(reduceMotion: reduceMotion))
-                    .onHover { playHovered = $0 }
-                    .scaleEffect(playHovered && !reduceMotion ? 1.025 : 1)
-                    .animation(
-                        reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82),
-                        value: playHovered
-                    )
-                    .accessibilityHint("Experimental online playback with your authorized account")
-
-                    if signIn.playback.status != .idle {
-                        Button {
-                            stopHovered = false
-                            signIn.stopPlayback()
-                        } label: {
-                            Image(systemName: "stop.fill")
-                                .font(.system(size: 11))
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    .white.opacity(stopHovered ? 0.78 : 0.48),
-                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                )
-                        }
-                        .buttonStyle(PlaybackControlButtonStyle(reduceMotion: reduceMotion))
-                        .onHover { stopHovered = $0 }
-                        .scaleEffect(stopHovered && !reduceMotion ? 1.045 : 1)
-                        .animation(
-                            reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82),
-                            value: stopHovered
-                        )
-                        .transition(
-                            reduceMotion ? .identity :
-                                .opacity.combined(with: .scale(scale: 0.92))
-                        )
-                        .accessibilityLabel("Stop playback")
-                    }
-
-                    Spacer()
-
-                    Text("\(formattedTime(signIn.playback.elapsedSeconds)) / \(formattedTime(signIn.playback.durationSeconds))")
-                        .font(.system(size: 10, design: .monospaced))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(signIn.currentTrack?.title ?? "Nothing playing")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .lineLimit(2)
+                        .contentTransition(.opacity)
+                    Text(signIn.currentTrack?.artistName ?? "Find something to listen to")
+                        .font(.system(size: 11))
                         .foregroundStyle(secondary)
-                        .monospacedDigit()
+                        .lineLimit(2)
                 }
-                .animation(
-                    reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.85),
-                    value: stopButtonVisible
-                )
-
-                if signIn.playback.durationSeconds > 0,
-                   signIn.playback.status != .idle {
-                    Slider(
-                        value: Binding(
-                            get: {
-                                draftSeekSeconds ?? min(
-                                    signIn.playback.elapsedSeconds,
-                                    signIn.playback.durationSeconds
-                                )
-                            },
-                            set: { draftSeekSeconds = $0 }
-                        ),
-                        in: 0...signIn.playback.durationSeconds,
-                        onEditingChanged: { editing in
-                            if !editing {
-                                if let draftSeekSeconds {
-                                    signIn.seekPlayback(to: draftSeekSeconds)
-                                }
-                                draftSeekSeconds = nil
-                            }
-                        }
-                    )
-                    .controlSize(.mini)
-                    .disabled(playbackHasError)
-                    .accessibilityLabel("Playback position")
-                }
-
-                if case .failed(let message) = signIn.playback.status {
-                    stateLabel(message, icon: "info.circle")
-                }
-                Text("Online playback is experimental; full-track delivery is not yet verified.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
             }
-            .padding(.vertical, 4)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22),
+                       value: signIn.currentTrack?.id)
+
+            HStack(spacing: 7) {
+                Text(formattedTime(signIn.playback.elapsedSeconds))
+                Slider(
+                    value: Binding(
+                        get: {
+                            draftSeekSeconds ?? min(
+                                signIn.playback.elapsedSeconds,
+                                max(0, signIn.playback.durationSeconds)
+                            )
+                        },
+                        set: { draftSeekSeconds = $0 }
+                    ),
+                    in: 0...max(1, signIn.playback.durationSeconds),
+                    onEditingChanged: { editing in
+                        if !editing {
+                            if let draftSeekSeconds {
+                                signIn.seekPlayback(to: draftSeekSeconds)
+                            }
+                            draftSeekSeconds = nil
+                        }
+                    }
+                )
+                .controlSize(.small)
+                .disabled(signIn.playback.durationSeconds <= 0 || playbackHasError)
+                .accessibilityLabel("Playback position")
+                Text(formattedTime(signIn.playback.durationSeconds))
+            }
+            .font(.system(size: 10, design: .monospaced))
+            .monospacedDigit()
+            .foregroundStyle(secondary)
+
+            HStack(spacing: 12) {
+                Spacer()
+                Button(action: signIn.skipPrevious) {
+                    Image(systemName: "backward.end.fill")
+                        .font(.system(size: 14))
+                        .frame(width: 33, height: 33)
+                }
+                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                .disabled(!signIn.canSkipPrevious)
+                .accessibilityLabel("Previous track or restart")
+
+                Button(action: signIn.playOrPause) {
+                    Image(systemName: playIcon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(width: 48, height: 40)
+                }
+                .buttonStyle(QuietGlassButtonStyle(surface: .filled))
+                .disabled(!canPlay)
+                .accessibilityLabel(playLabel)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: playIcon)
+
+                Button(action: signIn.stopPlayback) {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 12))
+                        .frame(width: 33, height: 33)
+                }
+                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                .disabled(signIn.playback.status == .idle)
+                .accessibilityLabel("Stop playback")
+
+                Button(action: signIn.skipNext) {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 14))
+                        .frame(width: 33, height: 33)
+                }
+                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                .disabled(!signIn.canSkipNext)
+                .accessibilityLabel("Next track")
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                Image(systemName: signIn.playback.volume == 0
+                    ? "speaker.slash" : "speaker.wave.2")
+                    .frame(width: 15)
+                    .accessibilityHidden(true)
+                Slider(
+                    value: Binding(
+                        get: { signIn.playback.volume },
+                        set: { signIn.playback.setVolume($0) }
+                    ),
+                    in: 0...1
+                )
+                .controlSize(.mini)
+                .accessibilityLabel("Volume")
+            }
+            .foregroundStyle(secondary)
+
+            switch signIn.sourceProbe {
+            case .checking:
+                statusLine("Loading your track…", symbol: "hourglass")
+            case .failed(let message):
+                statusLine(message, symbol: "info.circle")
+            default:
+                EmptyView()
+            }
+            if case .failed(let message) = signIn.playback.status {
+                statusLine(message, symbol: "info.circle")
+            }
         }
     }
 
-    private var stopButtonVisible: Bool {
-        signIn.playback.status != .idle
+    private var searchSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("EXPLORE")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(secondary)
+                Spacer()
+                if signIn.searchStatus == .searching {
+                    ProgressView().controlSize(.mini)
+                        .accessibilityLabel("Searching")
+                }
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundStyle(secondary)
+                TextField("Song or artist", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .onSubmit(performSearch)
+                    .accessibilityLabel("Search music")
+                Button(action: performSearch) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 29, height: 28)
+                }
+                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                          signIn.searchStatus == .searching)
+                .accessibilityLabel("Search")
+            }
+            .padding(.leading, 12)
+            .padding(.trailing, 4)
+            .frame(height: 40)
+            .background(.white.opacity(0.58),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(.white.opacity(0.76), lineWidth: 1)
+            }
+
+            if !signIn.searchResults.isEmpty {
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 5) {
+                        ForEach(signIn.searchResults) { track in
+                            Button {
+                                signIn.play(track)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: signIn.currentTrack?.id == track.id
+                                        ? "waveform" : "music.note")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(accent)
+                                        .frame(width: 24)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(track.title)
+                                            .font(.system(size: 11, weight: .medium))
+                                            .lineLimit(1)
+                                        Text(track.artistName)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer(minLength: 4)
+                                    Text(formattedMilliseconds(track.durationMilliseconds))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .monospacedDigit()
+                                        .foregroundStyle(secondary)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 9)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(QuietGlassButtonStyle(
+                                surface: signIn.currentTrack?.id == track.id ? .filled : .text
+                            ))
+                            .accessibilityLabel("Play \(track.title) by \(track.artistName)")
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
+            } else {
+                switch signIn.searchStatus {
+                case .ready:
+                    statusLine("No tracks found. Try another search.", symbol: "magnifyingglass")
+                case .failed(let message):
+                    statusLine(message, symbol: "info.circle")
+                case .idle:
+                    Text("Search and choose a song to start listening.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(secondary)
+                case .searching:
+                    EmptyView()
+                }
+            }
+        }
+    }
+
+    private var playIcon: String {
+        switch signIn.playback.status {
+        case .playing, .connecting: return "pause.fill"
+        default: return "play.fill"
+        }
+    }
+
+    private var playLabel: String {
+        switch signIn.playback.status {
+        case .playing, .connecting: return "Pause"
+        case .paused: return "Resume"
+        case .finished: return "Replay"
+        default: return "Play"
+        }
+    }
+
+    private var canPlay: Bool {
+        guard signIn.currentTrack != nil else { return false }
+        if case .verified = signIn.sourceProbe { return true }
+        return false
     }
 
     private var playbackHasError: Bool {
         if case .failed = signIn.playback.status { return true }
-        return false
+        return signIn.playback.status == .idle
     }
 
-    private var playActionLabel: String {
-        switch signIn.playback.status {
-        case .connecting, .playing: "Pause"
-        case .paused: "Resume"
-        case .finished: "Replay"
-        case .failed: "Try again"
-        case .idle: "Play"
-        }
+    private func performSearch() {
+        signIn.searchTracks(query)
     }
 
-    private var playActionIcon: String {
-        switch signIn.playback.status {
-        case .connecting, .playing: "pause.fill"
-        default: "play.fill"
+    private func artwork(isPlaying: Bool) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(LinearGradient(
+                    colors: [
+                        .white.opacity(0.88),
+                        Color(red: 0.89, green: 0.80, blue: 0.68).opacity(0.55)
+                    ],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                ))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(.white.opacity(0.83), lineWidth: 1)
+                }
+            Circle()
+                .fill(accent.opacity(breathing && isPlaying && !reduceMotion ? 0.19 : 0.08))
+                .blur(radius: 14)
+                .frame(width: 63, height: 63)
+            Circle()
+                .strokeBorder(accent.opacity(0.20), lineWidth: 1)
+                .frame(width: 51, height: 51)
+                .scaleEffect(breathing && isPlaying && !reduceMotion ? 1.1 : 1)
+            Image(systemName: "waveform")
+                .font(.system(size: 23, weight: .ultraLight))
+                .foregroundStyle(accent)
         }
+        .frame(width: 78, height: 78)
+        .accessibilityHidden(true)
+    }
+
+    private func statusLine(_ text: String, symbol: String) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.system(size: 11))
+            .foregroundStyle(secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func formattedTime(_ seconds: Double) -> String {
         guard seconds.isFinite, seconds >= 0 else { return "0:00" }
-        let rounded = Int(seconds)
-        return "\(rounded / 60):\(String(format: "%02d", rounded % 60))"
+        let whole = Int(seconds)
+        return "\(whole / 60):\(String(format: "%02d", whole % 60))"
     }
 
-    private var sourcePhase: Int {
-        switch signIn.sourceProbe {
-        case .idle: 0
-        case .checking: 1
-        case .verified: 2
-        case .failed: 3
+    private func formattedMilliseconds(_ value: Int?) -> String {
+        guard let value, value >= 0 else { return "—" }
+        return formattedTime(Double(value) / 1_000)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(accent.opacity(0.15))
+            .frame(height: 1)
+            .accessibilityHidden(true)
+    }
+
+    private var footer: some View {
+        HStack {
+            Text("lueya v\(version)")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(secondary)
+            Spacer()
+            Button("Quit lueya") { NSApplication.shared.terminate(nil) }
+                .font(.system(size: 10))
+                .foregroundStyle(secondary)
+                .buttonStyle(QuietGlassButtonStyle(surface: .text))
         }
+    }
+
+    @ViewBuilder
+    private var warmGlass: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        ZStack {
+            if reduceTransparency {
+                shape.fill(Color(red: 0.965, green: 0.939, blue: 0.901))
+            } else {
+                shape.fill(.regularMaterial)
+            }
+            shape.fill(LinearGradient(
+                colors: [
+                    Color(red: 1, green: 0.972, blue: 0.931).opacity(0.72),
+                    Color(red: 0.939, green: 0.890, blue: 0.839).opacity(0.43),
+                    Color(red: 0.990, green: 0.961, blue: 0.919).opacity(0.54)
+                ],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ))
+            shape.strokeBorder(.white.opacity(0.75), lineWidth: 1)
+        }
+        .clipShape(shape)
+        .shadow(color: accent.opacity(0.10), radius: 23, x: 0, y: 10)
     }
 
     private func startMotion() {
@@ -498,13 +537,11 @@ struct PlayerPreview: View {
             contentRevealed = true
             return
         }
-
-        // One entrance, then a quiet, low-frequency pulse while the panel is visible.
-        withAnimation(.easeOut(duration: 0.46)) {
+        withAnimation(.easeOut(duration: 0.40)) {
             contentRevealed = true
         }
-        withAnimation(.easeInOut(duration: 3.7).repeatForever(autoreverses: true)) {
-            heroBreathing = true
+        withAnimation(.easeInOut(duration: 3.8).repeatForever(autoreverses: true)) {
+            breathing = true
         }
     }
 
@@ -512,82 +549,54 @@ struct PlayerPreview: View {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            heroBreathing = false
+            breathing = false
             contentRevealed = false
         }
     }
-
-    private func stateLabel(_ value: String, icon: String) -> some View {
-        Label(value, systemImage: icon)
-            .font(.system(size: 11))
-            .foregroundStyle(secondary)
-            .labelStyle(.titleAndIcon)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(accent.opacity(0.16))
-            .frame(height: 1)
-            .accessibilityHidden(true)
-    }
-
-    private var footer: some View {
-        HStack(spacing: 7) {
-            Text("lueya v\(version)")
-                .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundStyle(secondary)
-
-            Spacer()
-
-            Button("Quit lueya") { NSApplication.shared.terminate(nil) }
-                .font(.system(size: 10))
-                .foregroundStyle(secondary)
-                .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private var warmGlass: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-
-        ZStack {
-            if reduceTransparency {
-                shape.fill(Color(red: 0.965, green: 0.939, blue: 0.901))
-            } else {
-                shape.fill(.regularMaterial)
-            }
-
-            shape.fill(
-                LinearGradient(
-                    colors: [
-                        Color(red: 1, green: 0.972, blue: 0.931).opacity(0.72),
-                        Color(red: 0.939, green: 0.890, blue: 0.839).opacity(0.43),
-                        Color(red: 0.990, green: 0.961, blue: 0.919).opacity(0.54)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            shape.strokeBorder(.white.opacity(0.75), lineWidth: 1)
-        }
-        .clipShape(shape)
-        .shadow(color: accent.opacity(0.11), radius: 25, x: 0, y: 12)
-    }
 }
 
+/// A single hover/press/focus-friendly surface for every button in the player.
+private struct QuietGlassButtonStyle: ButtonStyle {
+    enum Surface {
+        case filled
+        case subtle
+        case text
+    }
 
-/// Retains the native quiet-glass appearance while giving controls tactile feedback.
-private struct PlaybackControlButtonStyle: ButtonStyle {
-    let reduceMotion: Bool
+    let surface: Surface
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.955 : 1)
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(
-                reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.76),
-                value: configuration.isPressed
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(surfaceColor)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(.white.opacity(surface == .text ? 0 : 0.65), lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .scaleEffect(reduceMotion ? 1 :
+                (configuration.isPressed ? 0.95 : (hovered ? 1.025 : 1)))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.78 : 1) : 0.42)
+            .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.78),
+                       value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .spring(response: 0.29, dampingFraction: 0.82),
+                       value: hovered)
+            .onHover { hovered = $0 }
+    }
+
+    private var surfaceColor: Color {
+        switch surface {
+        case .filled:
+            Color(red: 0.62, green: 0.45, blue: 0.29).opacity(hovered ? 0.21 : 0.14)
+        case .subtle:
+            .white.opacity(hovered ? 0.78 : 0.47)
+        case .text:
+            .white.opacity(hovered ? 0.42 : 0.01)
+        }
     }
 }
