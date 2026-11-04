@@ -32,7 +32,7 @@ final class ControlledMediaAssetLoaderTests: XCTestCase {
         })
 
         let player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
-        player.seek(to: CMTime(seconds: 0.5, preferredTimescale: 600))
+        _ = await player.seek(to: CMTime(seconds: 0.5, preferredTimescale: 600))
         player.pause()
         player.replaceCurrentItem(with: nil)
     }
