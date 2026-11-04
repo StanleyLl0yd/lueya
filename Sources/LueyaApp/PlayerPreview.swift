@@ -49,6 +49,9 @@ struct PlayerPreview: View {
                     }
                 }
             }
+            .id(statusPhase)
+            .transition(reduceMotion ? .identity :
+                .opacity.combined(with: .scale(scale: 0.985)))
             .opacity(contentRevealed || reduceMotion ? 1 : 0)
             .offset(y: contentRevealed || reduceMotion ? 0 : 5)
 
@@ -61,6 +64,7 @@ struct PlayerPreview: View {
         .background { warmGlass }
         .environment(\.colorScheme, .light)
         .tint(accent)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.26), value: statusPhase)
         .task { await signIn.restoreIfNeeded() }
         .onAppear(perform: startMotion)
         .onDisappear(perform: stopMotion)
@@ -176,7 +180,11 @@ struct PlayerPreview: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Button("Sign out") { signIn.signOut() }
+                Button("Sign out") {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                        signIn.signOut()
+                    }
+                }
                     .buttonStyle(QuietGlassButtonStyle(surface: .text))
                     .accessibilityHint("Remove the local Keychain session")
             }
@@ -407,6 +415,17 @@ struct PlayerPreview: View {
                     EmptyView()
                 }
             }
+        }
+    }
+
+    private var statusPhase: Int {
+        switch signIn.status {
+        case .restoring: 0
+        case .signedOut: 1
+        case .requestingCode, .awaitingAuthorization: 2
+        case .signedIn: 3
+        case .signingOut: 4
+        case .failed: 5
         }
     }
 
