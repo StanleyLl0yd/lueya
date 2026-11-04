@@ -15,14 +15,14 @@ lueya («лу-э-я») — минималистичное нативное пр�
 - Безопасное хранение, восстановление и удаление сессии через Связку ключей macOS.
 - Экспериментальная проверка метаданных и источника трека с подбором разрешённого качества.
 
-**v0.2.0 — ранний выпуск, пока не полноценный аудиоплеер.**
+**v0.2.1 — ранний выпуск, пока не полноценный аудиоплеер.**
 Воспроизведение полных треков, поиск, плейлисты и «Моя волна» ещё не реализованы.
 
 ## Скачать
 
-**[Скачать lueya 0.2.0 для macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.2.0/lueya-0.2.0-macos-arm64.zip)**
+**[Скачать lueya 0.2.1 для macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.2.1/lueya-0.2.1-macos-arm64.zip)**
 
-[Проверить SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.2.0/SHA256SUMS.txt) ·
+[Проверить SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.2.1/SHA256SUMS.txt) ·
 [Все версии](https://github.com/StanleyLl0yd/lueya/releases)
 
 Требуется Mac с **Apple Silicon** и **macOS 26 или новее**
