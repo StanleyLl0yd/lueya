@@ -3,10 +3,10 @@
 **2026-11-04:** further testing of the anonymous shared-track WebKit
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
-[here](M0-API-FEASIBILITY.md). The experimental API-authenticated test build is tracked in [draft PR #15](https://github.com/StanleyLl0yd/lueya/pull/15); it is **not** a full player.
-The 0.0.3 authorization release notes are [here](AUTH-RESEARCH-RELEASE-NOTES.md).
-The current regular early-access release is [v0.1.0](releases/v0.1.0.md).
-The historical 0.0.4 source check remains [here](STREAM-CHECK-RELEASE-NOTES.md).
+[here](M0-API-FEASIBILITY.md). The historical OAuth experiment is documented [here](AUTH-RESEARCH-RELEASE-NOTES.md).
+The current experimental native playback build is [v0.3.0](releases/v0.3.0.md).
+Use the current release for M0 audio tests; the old embed tests below are
+preserved as historical evidence only.
 
 **Development and builds remain on GitHub.** To test, download
 only the built application ZIP(s), not the source code.
@@ -69,10 +69,9 @@ The historical outcome (~15–20 seconds of audio) is recorded in
 [closed issue #6](https://github.com/StanleyLl0yd/lueya/issues/6).
 Do not perform additional manual tests for this legacy probe.
 
-## Not yet supported
+## Historical limitations
 
-My Wave, personalized tracks, search, history, media keys,
-music-service login or a native streaming engine.
-
-This prerelease is an experimental research artifact, not a release
-candidate. Both macOS CI jobs must pass before publication.
+This archived prerelease did not contain account login, a native
+streaming engine, My Wave, search or media-key support. Current
+functionality is documented in the v0.3.0 release notes above.
+The old embed probe must not be used as a test for full-track playback.
