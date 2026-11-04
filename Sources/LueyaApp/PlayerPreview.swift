@@ -9,6 +9,7 @@ struct PlayerPreview: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var probeTrackID = ""
+    @State private var draftSeekSeconds: Double?
     @State private var openHovered = false
     @State private var checkHovered = false
     @State private var contentRevealed = false
@@ -144,7 +145,7 @@ struct PlayerPreview: View {
 
     private var listeningSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Online playback is in development", systemImage: "sparkle")
+            Label("Experimental online playback", systemImage: "sparkle")
                 .font(.system(size: 11))
                 .foregroundStyle(secondary)
 
@@ -248,7 +249,7 @@ struct PlayerPreview: View {
                     .foregroundStyle(ink)
                     .lineLimit(2)
 
-                Text("Check an authorized track source (no audio yet)")
+                Text("Check an authorized track to try online playback")
                     .font(.system(size: 11))
                     .foregroundStyle(secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -295,6 +296,7 @@ struct PlayerPreview: View {
                 }
 
                 sourceResult
+                playbackControls
 
                 Button("Sign out") { signIn.signOut() }
                     .font(.system(size: 11, weight: .medium))
@@ -333,6 +335,117 @@ struct PlayerPreview: View {
             stateLabel(message, icon: "info.circle")
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    @ViewBuilder
+    private var playbackControls: some View {
+        if case .verified = signIn.sourceProbe {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 9) {
+                    Button {
+                        signIn.playOrPause()
+                    } label: {
+                        Label(playActionLabel, systemImage: playActionIcon)
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .background(
+                                accent.opacity(0.12),
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Experimental online playback with your authorized account")
+
+                    if signIn.playback.status != .idle {
+                        Button {
+                            signIn.stopPlayback()
+                        } label: {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 11))
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    .white.opacity(0.48),
+                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Stop playback")
+                    }
+
+                    Spacer()
+
+                    Text("\(formattedTime(signIn.playback.elapsedSeconds)) / \(formattedTime(signIn.playback.durationSeconds))")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(secondary)
+                        .monospacedDigit()
+                }
+
+                if signIn.playback.durationSeconds > 0,
+                   signIn.playback.status != .idle {
+                    Slider(
+                        value: Binding(
+                            get: {
+                                draftSeekSeconds ?? min(
+                                    signIn.playback.elapsedSeconds,
+                                    signIn.playback.durationSeconds
+                                )
+                            },
+                            set: { draftSeekSeconds = $0 }
+                        ),
+                        in: 0...signIn.playback.durationSeconds,
+                        onEditingChanged: { editing in
+                            if !editing {
+                                if let draftSeekSeconds {
+                                    signIn.seekPlayback(to: draftSeekSeconds)
+                                }
+                                draftSeekSeconds = nil
+                            }
+                        }
+                    )
+                    .controlSize(.mini)
+                    .disabled(playbackHasError)
+                    .accessibilityLabel("Playback position")
+                }
+
+                if case .failed(let message) = signIn.playback.status {
+                    stateLabel(message, icon: "info.circle")
+                }
+                Text("Online playback is experimental; full-track delivery is not yet verified.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private var playbackHasError: Bool {
+        if case .failed = signIn.playback.status { return true }
+        return false
+    }
+
+    private var playActionLabel: String {
+        switch signIn.playback.status {
+        case .connecting, .playing: "Pause"
+        case .paused: "Resume"
+        case .finished: "Replay"
+        case .failed: "Try again"
+        case .idle: "Play"
+        }
+    }
+
+    private var playActionIcon: String {
+        switch signIn.playback.status {
+        case .connecting, .playing: "pause.fill"
+        default: "play.fill"
+        }
+    }
+
+    private func formattedTime(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
+        let rounded = Int(seconds)
+        return "\(rounded / 60):\(String(format: "%02d", rounded % 60))"
     }
 
     private var sourcePhase: Int {

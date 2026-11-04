@@ -3,6 +3,14 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## v0.3.0
+
+Experimental native online audio using AVPlayer and a private resource loader,
+strict HTTPS byte-range transport with 128-KiB memory cap, no redirects,
+OAuth headers, cookies, disk media or offline cache. Adds Play, Pause, Stop,
+Seek, and signed-source renewal on replay. Synthetic security regression
+tests pass; real full-track playback and provider permissions remain OPEN.
+
 ## v0.2.1
 
 Refine the accepted warm-glass interface with a gentle, low-frequency

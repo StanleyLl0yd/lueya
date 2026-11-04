@@ -1,6 +1,6 @@
 # Architecture
 
-Status: v0.1.0 early-access release; M0 remains OPEN. A user has confirmed account sign-in on a Mac, but in-app full-length audio and provider permissions remain unverified.
+Status: v0.3.0 experimental AVFoundation playback; M0 OPEN pending real full-track evidence, provider rights and repository-wide acceptance audit.
 
 ## Platform and toolchain
 
@@ -13,24 +13,25 @@ Status: v0.1.0 early-access release; M0 remains OPEN. A user has confirmed accou
 ## Implemented M0 skeleton
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
-- `PlayerPreview`: non-playing native warm matte-glass menu, light cream styling, dynamic version label, Reduce Motion/Transparency handling
-- `LueyaCore`: site validators, isolated Music account/OAuth/session clients and local Keychain, plus typed `YandexMusicStreamProvider` raw-source negotiation with strict CDN guards (#17)
+- `PlayerPreview`: warm matte-glass menu with source checking, experimental playback controls, dynamic version footer and accessibility settings
+- `LueyaCore`: account/OAuth/Keychain, source negotiation and `SecureMediaRangeClient` for ephemeral 128-KiB media chunks and strict CDN/response validation
+- `OnlineAudioPlayback`: native AVPlayer through a private in-memory resource delegate, play/pause/stop/seek, cancellation on sign-out
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
 - `scripts/package-app.sh`: size-optimized arm64 app, stripped before ad-hoc signing
 - XCTest suite and two-runner macOS native CI
 
-There is NO audio playback, custom player, queue, library, search or
-media-key control yet. The menu-bar UI supports experimental user-owned
-OAuth sign-in and an optional **non-playing** raw-source check. OAuth, account status and source lookup have synthetic CI tests.
-Real sign-in has been reported on a user's Mac; source retrieval is unverified.
-v0.1.0 separates previously ambiguous error categories. The main App Sandbox
-allows outbound OAuth and Music API calls.
+The AVPlayer path has no physical-Mac end-to-end playback evidence.
+A user has confirmed login and raw AAC-MP4 hq source discovery; actual
+bytes, decoding, seek, expiry, interruptions and track completion remain
+unverified. Synthetic CI alone cannot prove audio functionality.
+No queue, search, My Wave, library or media-key controls yet.
+Outbound HTTPS is limited by application policy and sandbox entitlements.
 
 ## Boundaries after feasibility
 
 - App: lifecycle, menu bar, windows, preferences, global shortcuts
 - Presentation: mini-player, zen mode, search and library
-- Playback: testable abstraction, concrete engine only after M0
+- Playback: AVPlayer consumes only an internal custom-scheme asset; the signed remote URL stays in a private bounded resource loader
 - Provider: native Swift `URLSession` adapter with fixed trusted origin,
   ephemeral transport and redirect blocking; integration via supported,
   authorized capabilities only
@@ -41,7 +42,7 @@ allows outbound OAuth and Music API calls.
 - WKWebView is not approved until provider permissions and behavior
   are verified; website cookies must not be used as API tokens.
 - No scraping, DRM bypass, offline downloads or redistribution of provider media.
-- Public official Yandex Music Android OAuth client identifiers from community docs are an **approved project research decision**, but may be revoked and do not provide provider endorsement.
+- Public first-party Music OAuth identifiers are an **approved project research decision**, but may be revoked and do not provide provider endorsement.
 - No app-owned backend or token telemetry; tokens never enter GitHub.
 - No macOS 27-only API without a functional macOS 26 fallback.
 - Keep accessibility, reduced motion and resource use in scope.
