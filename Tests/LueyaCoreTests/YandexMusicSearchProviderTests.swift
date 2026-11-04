@@ -33,6 +33,25 @@ final class YandexMusicSearchProviderTests: XCTestCase {
         XCTAssertTrue(matches.isEmpty)
     }
 
+    func testArtistNameFallsBackToAllCategories() async throws {
+        let allResults = """
+        {"result":{"tracks":{"results":[
+            {"id":123456,"title":"Группа крови","artists":[{"name":"Кино"}],
+             "durationMs":287000,"available":true}
+        ]}}}
+        """
+        let results = try await YandexMusicSearchProvider(
+            transport: StubTransport(
+                body: #"{"result":{"tracks":{"results":[]}}}"#,
+                allBody: allResults
+            )
+        ).tracks(matching: "кино", accessToken: "my-test-token")
+
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results[0].title, "Группа крови")
+        XCTAssertEqual(results[0].artistName, "Кино")
+    }
+
     func testRejectsInvalidQueriesBeforeNetwork() async {
         for query in ["", " \n ", String(repeating: "a", count: 121), "bad\u{0000}query"] {
             await expect(
@@ -114,15 +133,18 @@ final class YandexMusicSearchProviderTests: XCTestCase {
     private struct StubTransport: MusicHTTPTransport {
         let status: Int
         let body: String
+        let allBody: String?
         let responseURL: String?
 
         init(
             status: Int = 200,
             body: String = #"{"result":{"tracks":{"results":[]}}}"#,
+            allBody: String? = nil,
             responseURL: String? = nil
         ) {
             self.status = status
             self.body = body
+            self.allBody = allBody
             self.responseURL = responseURL
         }
 
@@ -132,7 +154,8 @@ final class YandexMusicSearchProviderTests: XCTestCase {
             XCTAssertEqual(url.host, "api.music.yandex.net")
             XCTAssertEqual(url.path, "/search")
             let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            XCTAssertEqual(parts?.queryItems?.first(where: { $0.name == "type" })?.value, "track")
+            let type = parts?.queryItems?.first(where: { $0.name == "type" })?.value
+            XCTAssertTrue(type == "track" || type == "all")
             XCTAssertEqual(parts?.queryItems?.first(where: { $0.name == "page" })?.value, "0")
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "OAuth my-test-token")
@@ -143,7 +166,8 @@ final class YandexMusicSearchProviderTests: XCTestCase {
                 url: returnedURL, statusCode: status,
                 httpVersion: nil, headerFields: nil
             )!
-            return (Data(body.utf8), response)
+            let responseBody = type == "all" ? (allBody ?? body) : body
+            return (Data(responseBody.utf8), response)
         }
     }
 }

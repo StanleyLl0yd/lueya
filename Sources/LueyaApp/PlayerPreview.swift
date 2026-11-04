@@ -10,6 +10,7 @@ struct PlayerPreview: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var query = ""
+    @State private var searchDebounceTask: Task<Void, Never>?
     @State private var draftSeekSeconds: Double?
     @State private var contentRevealed = false
     @State private var breathing = false
@@ -67,7 +68,10 @@ struct PlayerPreview: View {
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.26), value: statusPhase)
         .task { await signIn.restoreIfNeeded() }
         .onAppear(perform: startMotion)
-        .onDisappear(perform: stopMotion)
+        .onDisappear {
+            searchDebounceTask?.cancel()
+            stopMotion()
+        }
         .onChange(of: reduceMotion) { _, enabled in
             if enabled {
                 stopMotion()
@@ -340,6 +344,17 @@ struct PlayerPreview: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .onSubmit(performSearch)
+                    .onChange(of: query) { _, updated in
+                        searchDebounceTask?.cancel()
+                        signIn.resetSearch()
+                        let term = updated.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !term.isEmpty else { return }
+                        searchDebounceTask = Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(450))
+                            guard !Task.isCancelled else { return }
+                            signIn.searchTracks(term)
+                        }
+                    }
                     .accessibilityLabel("Search music")
                 Button(action: performSearch) {
                     Image(systemName: "arrow.right")
@@ -347,8 +362,7 @@ struct PlayerPreview: View {
                         .frame(width: 29, height: 28)
                 }
                 .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
-                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                          signIn.searchStatus == .searching)
+                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityLabel("Search")
             }
             .padding(.leading, 12)
@@ -412,7 +426,7 @@ struct PlayerPreview: View {
                         .font(.system(size: 11))
                         .foregroundStyle(secondary)
                 case .searching:
-                    EmptyView()
+                    statusLine("Searching the music catalog…", symbol: "magnifyingglass")
                 }
             }
         }
@@ -457,6 +471,7 @@ struct PlayerPreview: View {
     }
 
     private func performSearch() {
+        searchDebounceTask?.cancel()
         signIn.searchTracks(query)
     }
 
@@ -574,7 +589,7 @@ struct PlayerPreview: View {
     }
 }
 
-/// A single hover/press/focus-friendly surface for every button in the player.
+/// Restores the springy hover/press feedback from v0.4.1 for every button.
 private struct QuietGlassButtonStyle: ButtonStyle {
     enum Surface {
         case filled
@@ -595,27 +610,41 @@ private struct QuietGlassButtonStyle: ButtonStyle {
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .strokeBorder(.white.opacity(surface == .text ? 0 : 0.65), lineWidth: 1)
+                    .strokeBorder(
+                        .white.opacity(surface == .text ? 0 : (hovered ? 0.90 : 0.65)),
+                        lineWidth: 1
+                    )
             }
             .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-            .scaleEffect(reduceMotion ? 1 :
-                (configuration.isPressed ? 0.95 : (hovered ? 1.025 : 1)))
-            .opacity(isEnabled ? (configuration.isPressed ? 0.78 : 1) : 0.42)
-            .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.78),
-                       value: configuration.isPressed)
-            .animation(reduceMotion ? nil : .spring(response: 0.29, dampingFraction: 0.82),
-                       value: hovered)
-            .onHover { hovered = $0 }
+            .scaleEffect(reduceMotion || !isEnabled ? 1 :
+                (configuration.isPressed ? 0.955 : (hovered ? 1.045 : 1)))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.82 : 1) : 0.42)
+            .shadow(
+                color: Color(red: 0.62, green: 0.45, blue: 0.29)
+                    .opacity(hovered && isEnabled ? 0.20 : 0),
+                radius: hovered ? 9 : 0, x: 0, y: hovered ? 3 : 0
+            )
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.76),
+                value: configuration.isPressed
+            )
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.82),
+                value: hovered
+            )
+            .onHover { hovered = isEnabled && $0 }
     }
 
     private var surfaceColor: Color {
         switch surface {
         case .filled:
-            Color(red: 0.62, green: 0.45, blue: 0.29).opacity(hovered ? 0.21 : 0.14)
+            Color(red: 0.62, green: 0.45, blue: 0.29)
+                .opacity(hovered && isEnabled ? 0.24 : 0.14)
         case .subtle:
-            .white.opacity(hovered ? 0.78 : 0.47)
+            .white.opacity(hovered && isEnabled ? 0.88 : 0.47)
         case .text:
-            .white.opacity(hovered ? 0.42 : 0.01)
+            Color(red: 0.62, green: 0.45, blue: 0.29)
+                .opacity(hovered && isEnabled ? 0.15 : 0.01)
         }
     }
 }

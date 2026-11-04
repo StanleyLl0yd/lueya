@@ -132,6 +132,12 @@ final class MusicSignInModel {
         }
     }
 
+    func resetSearch() {
+        cancelSearch()
+        searchResults = []
+        searchStatus = .idle
+    }
+
     func searchTracks(_ text: String) {
         guard case .signedIn = status else { return }
         cancelSearch()
