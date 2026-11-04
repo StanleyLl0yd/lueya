@@ -52,6 +52,12 @@ public final class ControlledMediaAssetLoader: NSObject, @preconcurrency AVAsset
         didCancel request: AVAssetResourceLoadingRequest
     ) {
         requests.removeValue(forKey: ObjectIdentifier(request))?.cancel()
+        // Seeking can cancel the old loading request without stopping the track.
+        // Do not retain a shared renewal when no request still needs its result.
+        if requests.isEmpty {
+            renewalTask?.cancel()
+            renewalTask = nil
+        }
     }
 
     public func close() {

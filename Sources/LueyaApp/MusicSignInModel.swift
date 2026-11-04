@@ -225,8 +225,8 @@ final class MusicSignInModel {
             guard self.playbackOperationGeneration == operation,
                   self.sourceProbeGeneration == probe,
                   case .signedIn = self.status else { throw CancellationError() }
-            // The loader independently validates track identity, format and CDN.
-            self.resolvedTrack = refreshed
+            // Only the loader may accept a replacement after format checks.
+            // Do not overwrite the UI's cached candidate before that decision.
             return refreshed
         }
     }
