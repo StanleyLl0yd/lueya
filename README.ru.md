@@ -15,15 +15,15 @@ lueya («лу-э-я») — минималистичное нативное пр�
 - Безопасное хранение, восстановление и удаление сессии через Связку ключей macOS.
 - Экспериментальное онлайн-воспроизведение AAC/MP3: запуск, пауза, остановка и перемотка без загрузки файлов на диск.
 
-**v0.3.0 — первая экспериментальная версия с воспроизведением, ещё не проверенная на реальном Mac.**
+**v0.3.1 — первая экспериментальная версия с воспроизведением, ещё не проверенная на реальном Mac.**
 Получение источника не гарантирует полного звучания трека. Поиск,
 плейлисты и «Моя волна» пока недоступны.
 
 ## Скачать
 
-**[Скачать lueya 0.3.0 для macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.3.0/lueya-0.3.0-macos-arm64.zip)**
+**[Скачать lueya 0.3.1 для macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.3.1/lueya-0.3.1-macos-arm64.zip)**
 
-[Проверить SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.3.0/SHA256SUMS.txt) ·
+[Проверить SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.3.1/SHA256SUMS.txt) ·
 [Все версии](https://github.com/StanleyLl0yd/lueya/releases)
 
 Требуется Mac с **Apple Silicon** и **macOS 26 или новее**
