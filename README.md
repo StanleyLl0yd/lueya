@@ -69,7 +69,7 @@ test binaries. No permission to redistribute project materials is implied.
 
 ## Development
 
-[Roadmap](docs/ROADMAP.md) · [Issues](https://github.com/StanleyLl0yd/lueya/issues) ·
+[Personal macOS signing](docs/SIGNING.md) · [Roadmap](docs/ROADMAP.md) · [Issues](https://github.com/StanleyLl0yd/lueya/issues) ·
 [Security](SECURITY.md)
 
 Proprietary software, **All Rights Reserved** ([license](LICENSE)).
