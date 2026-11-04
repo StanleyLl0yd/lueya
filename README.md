@@ -23,9 +23,10 @@ mode. Provider restrictions still apply. Playlists and My Wave remain
 unavailable. The unofficial integration is not provider-authorized.
 ## Download
 
-**v0.5.0 is not published yet.** The versioned URL below becomes available only after
-owner-authorized publication. After the build is delivered for testing, all
-development, testing and release activity stops until the owner's verdict.
+**v0.5.0 requires an owner-authorized test release.** The direct link below
+works once it is published; if unavailable, publication is still pending.
+After the build is delivered for testing, all development, testing and release
+activity stops until the owner's verdict.
 
 **[Download lueya 0.5.0 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.0/lueya-0.5.0-macos-arm64.zip)**
 
