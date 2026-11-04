@@ -3,7 +3,7 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
-## [0.5.0] — pending owner-approved test release
+## [0.5.0] — owner trial
 
 - Replace track-ID experiment UI with an accessible native music player.
 - Search catalog by song/artist; start streaming from results, skip in a temporary queue, and adjust volume.
