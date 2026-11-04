@@ -42,7 +42,7 @@ Outbound HTTPS is limited by application policy and sandbox entitlements.
 - WKWebView is not approved until provider permissions and behavior
   are verified; website cookies must not be used as API tokens.
 - No scraping, DRM bypass, offline downloads or redistribution of provider media.
-- Public official Yandex Music Android OAuth client identifiers from community docs are an **approved project research decision**, but may be revoked and do not provide provider endorsement.
+- Public first-party Music OAuth identifiers are an **approved project research decision**, but may be revoked and do not provide provider endorsement.
 - No app-owned backend or token telemetry; tokens never enter GitHub.
 - No macOS 27-only API without a functional macOS 26 fallback.
 - Keep accessibility, reduced motion and resource use in scope.
