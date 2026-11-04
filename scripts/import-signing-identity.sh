@@ -39,7 +39,14 @@ security unlock-keychain -p "$keychain_password" "$keychain"
 security list-keychains -d user -s "$keychain"
 security import "$p12" -k "$keychain" \
     -P "$MACOS_SIGNING_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-security add-trusted-cert -r trustRoot -p codeSign -k "$keychain" "$cert"
+# Per-user trust would request a GUI authorization on a headless runner.
+# Limit administrator trust to code signing and fail fast if unavailable.
+/usr/bin/perl -e 'alarm 20; exec @ARGV or die "exec: $!"' \
+    /usr/bin/sudo -n /usr/bin/security add-trusted-cert -d \
+    -r trustRoot -p codeSign -k "$keychain" "$cert" || {
+    echo "Could not establish noninteractive, code-signing-only trust" >&2
+    exit 1
+}
 security set-key-partition-list -S apple-tool:,apple:,codesign: \
     -s -k "$keychain_password" "$keychain" >/dev/null
 
