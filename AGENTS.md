@@ -38,11 +38,16 @@
   provides their verdict on that exact version. No exceptions for a handoff,
   new conversation, completed CI or an obvious next task. Do not infer
   acceptance from silence or from a partial screenshot.
-- The current test build is v0.4.1. It has one explicitly authorized
-  test-publishing transition; no further automatic releases are allowed.
-  After delivery, workflow_dispatch for later releases requires the repository
-  owner's explicit version-specific confirmation and may only be run after
-  the owner has lifted the testing freeze.
+- The owner explicitly changed the iteration gate on 2026-11-05: feedback
+  on an already delivered test release authorizes the complete next cycle
+  (fixes, CI, signing, release) without a separate release-approval question.
+  The feedback can be negative; it is not milestone acceptance.
+- Current delivered test build: v0.5.0; owner reported ineffective search
+  and missing button animation. Next candidate: v0.5.1. After publishing
+  v0.5.1, freeze immediately until feedback on that exact version.
+- Signed publish uses only the already provisioned protected environment
+  and a version-specific guarded merge marker, never an arbitrary push.
+  Optional manual dispatch retains owner-only explicit confirmation.
 - Every release asset must be immutable and use a permanent direct URL.
 - Every distributed ZIP and future DMG filename must contain the exact version:
   `lueya-<version>-macos-arm64.zip` and `lueya-<version>-macos-arm64.dmg`.

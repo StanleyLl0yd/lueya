@@ -4,7 +4,7 @@
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
 [here](M0-API-FEASIBILITY.md). The historical OAuth experiment is documented [here](AUTH-RESEARCH-RELEASE-NOTES.md).
-The current experimental native playback build is [v0.4.0](releases/v0.4.0.md).
+The current feedback-driven signed test candidate is [v0.5.1](releases/v0.5.1.md).
 Use the current release for M0 audio tests; the old embed tests below are
 preserved as historical evidence only.
 
@@ -76,7 +76,7 @@ streaming engine, My Wave, search or media-key support. Current
 functionality is documented in the v0.4.0 release notes above.
 The old embed probe must not be used as a test for full-track playback.
 
-## Player interaction acceptance matrix (v0.5.0)
+## Player interaction acceptance matrix (v0.5.1)
 
 This is the developer's verification scope, **not an end-user button-by-button checklist**.
 The owner is expected to assess the overall build; the developer owns regressions.
@@ -97,7 +97,7 @@ Source inspection does not count as a completed on-device interaction test.
 
 Do not mark the matrix as complete until each interaction has been verified
 on an actual macOS build and relevant synthetic transport tests pass.
-The one-shot test release must be delivered only after CI and package integrity
+The feedback-authorized signed test release must be delivered only after CI and package integrity
 verification; afterward the owner-feedback freeze resumes.
 
 ## Signing and session continuity (v0.5.0 and later)

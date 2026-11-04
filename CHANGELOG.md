@@ -3,6 +3,19 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.1] — search and tactile interaction fixes
+
+- Run catalog search automatically after a short typing debounce; Enter and
+  search-arrow submit immediately, and a new query invalidates stale responses.
+- Show visible search progress, no-results and retry/error states.
+- Retry artist/song queries across the provider's all-category search when
+  a track-only lookup is empty, retaining bounded authenticated HTTPS requests.
+- Restore the spring hover and press feel from v0.4.1 for every button, with
+  stronger visual feedback and Reduce Motion support.
+- Add a synthetic Cyrillic artist search fallback regression test.
+- Signed owner test build; actual account search and real-device animations
+  still require owner verification.
+
 ## [0.5.0] — owner trial
 
 - Replace track-ID experiment UI with an accessible native music player.
