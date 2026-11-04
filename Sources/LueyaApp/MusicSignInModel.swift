@@ -24,12 +24,15 @@ final class MusicSignInModel {
     private(set) var status: Status = .restoring
     private(set) var code: OAuthDeviceCode?
     private(set) var sourceProbe: SourceProbeStatus = .idle
+    @ObservationIgnored let playback = OnlineAudioPlayback()
 
     @ObservationIgnored private let session = YandexMusicSession()
     @ObservationIgnored private let streamProvider = YandexMusicStreamProvider()
     @ObservationIgnored private var hasRestored = false
     @ObservationIgnored private var signInTask: Task<Void, Never>?
     @ObservationIgnored private var sourceProbeTask: Task<Void, Never>?
+    @ObservationIgnored private var replayTask: Task<Void, Never>?
+    @ObservationIgnored private var resolvedTrack: ResolvedTrack?
     @ObservationIgnored private var sourceProbeGeneration: UInt64 = 0
 
     func restoreIfNeeded() async {
@@ -49,6 +52,7 @@ final class MusicSignInModel {
 
     func signIn() {
         cancelSourceProbe()
+        cancelPlayback()
         signInTask?.cancel()
         code = nil
         status = .requestingCode
@@ -83,6 +87,7 @@ final class MusicSignInModel {
 
     func signOut() {
         cancelSourceProbe()
+        cancelPlayback()
         signInTask?.cancel()
         signInTask = nil
         code = nil
@@ -100,6 +105,7 @@ final class MusicSignInModel {
     func checkStreamSource(trackID: String) {
         guard case .signedIn = status else { return }
         cancelSourceProbe()
+        cancelPlayback()
         sourceProbe = .checking
         let generation = sourceProbeGeneration
 
@@ -112,6 +118,7 @@ final class MusicSignInModel {
                 try Task.checkCancellation()
                 guard sourceProbeGeneration == generation, case .signedIn = status else { return }
 
+                resolvedTrack = track
                 let metadata = track.metadata
                 let artist = metadata.artists.joined(separator: ", ")
                 let title = artist.isEmpty ? metadata.title : "\(artist) — \(metadata.title)"
@@ -125,6 +132,73 @@ final class MusicSignInModel {
                 sourceProbe = .failed(Self.streamMessage(for: error))
             }
         }
+    }
+
+    func playOrPause() {
+        guard case .signedIn = status, let resolvedTrack else { return }
+        switch playback.status {
+        case .connecting, .playing, .paused:
+            playback.toggle()
+        case .idle, .failed, .finished:
+            replayTask?.cancel()
+            guard !resolvedTrack.source.isFresh() else {
+                playback.start(resolvedTrack)
+                return
+            }
+
+            // Refresh a stale signed source only through the user's session.
+            playback.stop()
+            let generation = sourceProbeGeneration
+            let trackID = resolvedTrack.metadata.id
+            sourceProbe = .checking
+            replayTask = Task {
+                do {
+                    guard let token = try await session.validAccessToken() else {
+                        throw MusicStreamError.invalidToken
+                    }
+                    let refreshed = try await streamProvider.resolveTrack(
+                        id: trackID,
+                        accessToken: token
+                    )
+                    try Task.checkCancellation()
+                    guard generation == sourceProbeGeneration,
+                          case .signedIn = status else { return }
+                    self.resolvedTrack = refreshed
+                    let artist = refreshed.metadata.artists.joined(separator: ", ")
+                    let name = artist.isEmpty
+                        ? refreshed.metadata.title
+                        : "\(artist) — \(refreshed.metadata.title)"
+                    sourceProbe = .verified(
+                        name,
+                        "Raw source: \(refreshed.source.codec.rawValue) / \(refreshed.source.quality.rawValue)"
+                    )
+                    playback.start(refreshed)
+                } catch is CancellationError {
+                    // A superseding request or logout must not restart playback.
+                } catch {
+                    guard generation == sourceProbeGeneration,
+                          case .signedIn = status else { return }
+                    sourceProbe = .failed(Self.streamMessage(for: error))
+                }
+            }
+        }
+    }
+
+    func stopPlayback() {
+        replayTask?.cancel()
+        replayTask = nil
+        playback.stop()
+    }
+
+    func seekPlayback(to seconds: Double) {
+        playback.seek(to: seconds)
+    }
+
+    private func cancelPlayback() {
+        replayTask?.cancel()
+        replayTask = nil
+        resolvedTrack = nil
+        playback.stop()
     }
 
     private func cancelSourceProbe() {
