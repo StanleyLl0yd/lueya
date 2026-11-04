@@ -231,4 +231,9 @@ jobs:
             security delete-keychain "${LUEYA_CODESIGN_KEYCHAIN:-}" || true
           fi
           if [[ -n "${LUEYA_CODESIGN_P12:-}" ]]; then rm -f "${LUEYA_CODESIGN_P12:-}"; fi
-          if [[ -n "${LUEYA_CODESIGN_CERT:-}" ]]; then rm -f "${LUEYA_CODESIGN_CERT:-}"; fi
+          if [[ -n "${LUEYA_CODESIGN_CERT:-}" ]]; then
+            /usr/bin/perl -e 'alarm 15; exec @ARGV' \
+              /usr/bin/sudo -n /usr/bin/security remove-trusted-cert -d \
+              "${LUEYA_CODESIGN_CERT:-}" || true
+            rm -f "${LUEYA_CODESIGN_CERT:-}"
+          fi
