@@ -26,7 +26,8 @@ final class SecureMediaRangeClientTests: XCTestCase {
         XCTAssertNil(requests[0].value(forHTTPHeaderField: "Cookie"))
         XCTAssertEqual(requests[0].httpMethod, "GET")
         XCTAssertEqual(requests[0].cachePolicy, .reloadIgnoringLocalCacheData)
-        XCTAssertEqual(await transport.limit(), 4)
+        let observedLimit = await transport.limit()
+        XCTAssertEqual(observedLimit, 4)
     }
 
     func testRejectsUntrustedHostBeforeNetworkAccess() async {
@@ -35,7 +36,8 @@ final class SecureMediaRangeClientTests: XCTestCase {
             .untrustedURL, client: SecureMediaRangeClient(transport: transport),
             url: URL(string: "https://media.strm.yandex.net.evil.example/music")!
         )
-        XCTAssertTrue(await transport.captured().isEmpty)
+        let requests = await transport.captured()
+        XCTAssertTrue(requests.isEmpty)
     }
 
     func testRefusesAllRedirectedResponsesEvenIfStatus206() async {
