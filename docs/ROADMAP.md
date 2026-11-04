@@ -72,9 +72,9 @@ Each iteration ends with a versioned, downloadable test release and a
 new PR/merge/release activity and further planning are suspended until the
 owner gives explicit feedback on that exact build. Handoffs, CI completion
 and partial playback evidence never bypass the stop. The owner reported v0.4.1 audio functioning on 2026-11-04 and explicitly
-authorized the next implementation iteration. v0.5.0 is a pending candidate,
-not a published build. All subsequent publishing requires fresh, version-specific
-owner approval via manual workflow dispatch. Once the candidate is delivered,
+authorized the next implementation iteration. v0.5.0 is an explicitly owner-approved signed trial with a **single guarded
+publish on its protected-main merge**. All subsequent publishing requires
+fresh, version-specific owner approval via manual workflow dispatch. Once the candidate is delivered,
 FULL STOP resumes until the owner gives its verdict.
 
 ## Mandatory milestone gate
