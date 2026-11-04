@@ -34,6 +34,7 @@ final class MusicSignInModel {
     @ObservationIgnored private var replayTask: Task<Void, Never>?
     @ObservationIgnored private var resolvedTrack: ResolvedTrack?
     @ObservationIgnored private var sourceProbeGeneration: UInt64 = 0
+    @ObservationIgnored private var playbackOperationGeneration: UInt64 = 0
 
     func restoreIfNeeded() async {
         guard !hasRestored else { return }
@@ -142,7 +143,7 @@ final class MusicSignInModel {
         case .idle, .failed, .finished:
             replayTask?.cancel()
             guard !resolvedTrack.source.isFresh() else {
-                playback.start(resolvedTrack)
+                startPlayback(resolvedTrack)
                 return
             }
 
@@ -172,7 +173,7 @@ final class MusicSignInModel {
                         name,
                         "Raw source: \(refreshed.source.codec.rawValue) / \(refreshed.source.quality.rawValue)"
                     )
-                    playback.start(refreshed)
+                    startPlayback(refreshed)
                 } catch is CancellationError {
                     // A superseding request or logout must not restart playback.
                 } catch {
@@ -185,6 +186,7 @@ final class MusicSignInModel {
     }
 
     func stopPlayback() {
+        playbackOperationGeneration &+= 1
         replayTask?.cancel()
         replayTask = nil
         playback.stop()
@@ -195,10 +197,38 @@ final class MusicSignInModel {
     }
 
     private func cancelPlayback() {
+        playbackOperationGeneration &+= 1
         replayTask?.cancel()
         replayTask = nil
         resolvedTrack = nil
         playback.stop()
+    }
+
+    private func startPlayback(_ track: ResolvedTrack) {
+        playbackOperationGeneration &+= 1
+        let operation = playbackOperationGeneration
+        let probe = sourceProbeGeneration
+        let trackID = track.metadata.id
+        playback.start(track) { [weak self] in
+            guard let self,
+                  self.playbackOperationGeneration == operation,
+                  self.sourceProbeGeneration == probe,
+                  case .signedIn = self.status else { throw CancellationError() }
+
+            guard let token = try await self.session.validAccessToken() else {
+                throw MusicStreamError.invalidToken
+            }
+            let refreshed = try await self.streamProvider.resolveTrack(
+                id: trackID, accessToken: token
+            )
+            try Task.checkCancellation()
+            guard self.playbackOperationGeneration == operation,
+                  self.sourceProbeGeneration == probe,
+                  case .signedIn = self.status else { throw CancellationError() }
+            // The loader independently validates track identity, format and CDN.
+            self.resolvedTrack = refreshed
+            return refreshed
+        }
     }
 
     private func cancelSourceProbe() {
