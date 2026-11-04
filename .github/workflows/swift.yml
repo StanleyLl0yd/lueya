@@ -204,8 +204,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [[ -n "$LUEYA_CODESIGN_KEYCHAIN" ]]; then
-            security delete-keychain "$LUEYA_CODESIGN_KEYCHAIN" || true
+          if [[ -n "${LUEYA_CODESIGN_KEYCHAIN:-}" ]]; then
+            security delete-keychain "${LUEYA_CODESIGN_KEYCHAIN:-}" || true
           fi
-          if [[ -n "$LUEYA_CODESIGN_P12" ]]; then rm -f "$LUEYA_CODESIGN_P12"; fi
-          if [[ -n "$LUEYA_CODESIGN_CERT" ]]; then rm -f "$LUEYA_CODESIGN_CERT"; fi
+          if [[ -n "${LUEYA_CODESIGN_P12:-}" ]]; then rm -f "${LUEYA_CODESIGN_P12:-}"; fi
+          if [[ -n "${LUEYA_CODESIGN_CERT:-}" ]]; then rm -f "${LUEYA_CODESIGN_CERT:-}"; fi
