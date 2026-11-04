@@ -76,7 +76,7 @@ API или охраняемые авторским правом музыкаль
 
 ## Разработка
 
-[План](docs/ROADMAP.md) · [Задачи](https://github.com/StanleyLl0yd/lueya/issues) ·
+[Подпись macOS для тестирования](docs/SIGNING.md) · [План](docs/ROADMAP.md) · [Задачи](https://github.com/StanleyLl0yd/lueya/issues) ·
 [Безопасность](SECURITY.md)
 
 Проприетарный проект, **All Rights Reserved** ([лицензия](LICENSE)).
