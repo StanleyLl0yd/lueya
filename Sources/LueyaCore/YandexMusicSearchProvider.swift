@@ -7,6 +7,8 @@ public struct MusicSearchTrack: Identifiable, Equatable, Sendable {
     public let artists: [String]
     public let durationMilliseconds: Int?
     public let coverURI: String?
+    public let artist: MusicSearchArtist?
+    public let album: MusicSearchAlbum?
 
     public var coverURL: URL? {
         MusicArtworkURL.validatedURL(from: coverURI)
@@ -18,13 +20,16 @@ public struct MusicSearchTrack: Identifiable, Equatable, Sendable {
 
     public init(
         id: String, title: String, artists: [String],
-        durationMilliseconds: Int?, coverURI: String? = nil
+        durationMilliseconds: Int?, coverURI: String? = nil,
+        artist: MusicSearchArtist? = nil, album: MusicSearchAlbum? = nil
     ) {
         self.id = id
         self.title = title
         self.artists = artists
         self.durationMilliseconds = durationMilliseconds
         self.coverURI = coverURI
+        self.artist = artist
+        self.album = album
     }
 }
 
@@ -35,6 +40,36 @@ public struct MusicSearchArtist: Identifiable, Equatable, Sendable {
     public init(id: String, name: String) {
         self.id = id
         self.name = name
+    }
+}
+
+public struct MusicSearchAlbum: Identifiable, Equatable, Sendable {
+    public let id: String
+    public let title: String
+    public let artists: [String]
+    public let year: Int?
+    public let coverURI: String?
+
+    public var artistName: String {
+        artists.isEmpty ? "Unknown artist" : artists.joined(separator: ", ")
+    }
+    public var coverURL: URL? { MusicArtworkURL.validatedURL(from: coverURI) }
+
+    public init(id: String, title: String, artists: [String], year: Int?, coverURI: String?) {
+        self.id = id
+        self.title = title
+        self.artists = artists
+        self.year = year
+        self.coverURI = coverURI
+    }
+}
+
+public struct MusicArtistAlbumPage: Equatable, Sendable {
+    public let albums: [MusicSearchAlbum]
+    public let hasMore: Bool
+    public init(albums: [MusicSearchAlbum], hasMore: Bool) {
+        self.albums = albums
+        self.hasMore = hasMore
     }
 }
 
@@ -115,6 +150,54 @@ public struct YandexMusicSearchProvider: Sendable {
                   seen.insert(normalized).inserted else { return nil }
             return MusicSearchArtist(id: normalized, name: String(name.prefix(200)))
         }.prefix(20).map { $0 }
+    }
+
+    public func albums(matching input: String, accessToken: String) async throws -> [MusicSearchAlbum] {
+        let query = try Self.validatedQuery(input)
+        try Self.validateToken(accessToken)
+        let data = try await fetchSearchData(
+            matching: query, type: "album", accessToken: accessToken
+        )
+        guard let envelope = try? JSONDecoder().decode(SearchEnvelope.self, from: data),
+              let results = envelope.result?.albums?.results else {
+            throw MusicSearchError.invalidPayload
+        }
+        return Self.decodedAlbums(results)
+    }
+
+    public func albums(
+        forArtistID artistID: String, page: Int = 0, accessToken: String
+    ) async throws -> MusicArtistAlbumPage {
+        guard let id = Self.validatedNumericID(artistID),
+              (0...100).contains(page) else { throw MusicSearchError.invalidQuery }
+        try Self.validateToken(accessToken)
+        let url = URL(string:
+            "https://api.music.yandex.net/artists/\(id)/direct-albums?sort-by=year&page=\(page)&page-size=20"
+        )!
+        let data = try await perform(requestURL: url, accessToken: accessToken)
+        guard let payload = try? JSONDecoder().decode(ArtistAlbumEnvelope.self, from: data),
+              let result = payload.result else { throw MusicSearchError.invalidPayload }
+        let albums = Self.decodedAlbums(result.albums ?? [])
+        let hasMore = result.pager?.total.map { (page + 1) * 20 < $0 } ?? (result.albums?.count == 20)
+        return MusicArtistAlbumPage(albums: albums, hasMore: hasMore)
+    }
+
+    /// Album volumes contain the authoritative disc-ordered track list.
+    public func tracks(
+        forAlbum album: MusicSearchAlbum, accessToken: String
+    ) async throws -> [MusicSearchTrack] {
+        guard let id = Self.validatedNumericID(album.id) else {
+            throw MusicSearchError.invalidQuery
+        }
+        try Self.validateToken(accessToken)
+        let url = URL(string: "https://api.music.yandex.net/albums/\(id)/with-tracks")!
+        let data = try await perform(requestURL: url, accessToken: accessToken)
+        guard let envelope = try? JSONDecoder().decode(AlbumTracksEnvelope.self, from: data),
+              let volumes = envelope.result?.volumes else {
+            throw MusicSearchError.invalidPayload
+        }
+        // A defensive cap bounds UI and in-memory queue sizes.
+        return Self.decodedTracks(Array(volumes.joined().prefix(150)), fallbackAlbum: album)
     }
 
     /// Read-only bounded first page of an explicitly selected artist's tracks.
@@ -216,7 +299,9 @@ public struct YandexMusicSearchProvider: Sendable {
         return data
     }
 
-    private static func decodedTracks(_ items: [TrackResult]) -> [MusicSearchTrack] {
+    private static func decodedTracks(
+        _ items: [TrackResult], fallbackAlbum: MusicSearchAlbum? = nil
+    ) -> [MusicSearchTrack] {
         var unique = Set<String>()
         return items.compactMap { result -> MusicSearchTrack? in
             guard let id = result.id?.value,
@@ -224,16 +309,44 @@ public struct YandexMusicSearchProvider: Sendable {
                   let title = result.title?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !title.isEmpty, result.available != false,
                   unique.insert(normalized).inserted else { return nil }
+            let artists = (result.artists ?? []).compactMap { artist in
+                artist.name.map { String($0.prefix(100)) }
+            }
+            let firstArtist = result.artists?.first.flatMap { artist -> MusicSearchArtist? in
+                guard let id = artist.id?.value.flatMap(validatedNumericID),
+                      let name = artist.name, !name.isEmpty else { return nil }
+                return MusicSearchArtist(id: id, name: String(name.prefix(200)))
+            }
+            let album = result.albums?.compactMap { decodedAlbum($0) }.first ?? fallbackAlbum
             return MusicSearchTrack(
                 id: normalized,
                 title: String(title.prefix(200)),
-                artists: (result.artists ?? []).compactMap { artist in
-                    artist.name.map { String($0.prefix(100)) }
-                },
+                artists: artists.isEmpty ? (fallbackAlbum?.artists ?? []) : artists,
                 durationMilliseconds: result.durationMs,
-                coverURI: result.coverUri ??
-                    result.albums?.first?.coverUri
+                coverURI: result.coverUri ?? album?.coverURI,
+                artist: firstArtist,
+                album: album
             )
+        }.prefix(fallbackAlbum == nil ? 20 : 150).map { $0 }
+    }
+
+    private static func decodedAlbum(_ album: AlbumResult) -> MusicSearchAlbum? {
+        guard let id = album.id?.value.flatMap(validatedNumericID),
+              let title = album.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty, album.available != false else { return nil }
+        return MusicSearchAlbum(
+            id: id, title: String(title.prefix(200)),
+            artists: (album.artists ?? []).compactMap { $0.name.map { String($0.prefix(100)) } },
+            year: album.year, coverURI: album.coverUri
+        )
+    }
+
+    private static func decodedAlbums(_ albums: [AlbumResult]) -> [MusicSearchAlbum] {
+        var seen = Set<String>()
+        return albums.compactMap { album in
+            guard let result = decodedAlbum(album),
+                  seen.insert(result.id).inserted else { return nil }
+            return result
         }.prefix(20).map { $0 }
     }
 
@@ -244,6 +357,11 @@ public struct YandexMusicSearchProvider: Sendable {
     private struct SearchPayload: Decodable {
         let tracks: TrackResults?
         let artists: ArtistResults?
+        let albums: AlbumResults?
+    }
+
+    private struct AlbumResults: Decodable {
+        let results: [AlbumResult]?
     }
 
     private struct ArtistResults: Decodable {
@@ -254,6 +372,23 @@ public struct YandexMusicSearchProvider: Sendable {
         let id: StringOrNumber?
         let name: String?
         let available: Bool?
+    }
+
+    private struct ArtistAlbumEnvelope: Decodable {
+        let result: ArtistAlbumPayload?
+    }
+    private struct ArtistAlbumPayload: Decodable {
+        let albums: [AlbumResult]?
+        let pager: AlbumPager?
+    }
+    private struct AlbumPager: Decodable {
+        let total: Int?
+    }
+    private struct AlbumTracksEnvelope: Decodable {
+        let result: AlbumTracksPayload?
+    }
+    private struct AlbumTracksPayload: Decodable {
+        let volumes: [[TrackResult]]?
     }
 
     private struct ArtistTracksEnvelope: Decodable {
@@ -275,14 +410,20 @@ public struct YandexMusicSearchProvider: Sendable {
         let durationMs: Int?
         let available: Bool?
         let coverUri: String?
-        let albums: [AlbumCover]?
+        let albums: [AlbumResult]?
     }
 
-    private struct AlbumCover: Decodable {
+    private struct AlbumResult: Decodable {
+        let id: StringOrNumber?
+        let title: String?
+        let artists: [Artist]?
+        let year: Int?
         let coverUri: String?
+        let available: Bool?
     }
 
     private struct Artist: Decodable {
+        let id: StringOrNumber?
         let name: String?
     }
 
