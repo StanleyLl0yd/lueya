@@ -57,4 +57,4 @@ fi
 
 printf 'Executable bytes: %s\n' "$(stat -f %z "$app/Contents/MacOS/$executable")"
 printf 'Packaged: %s\n' "$app"
-printf '%s\n' "Not notarized; release permission requires owner approval."
+printf '%s\n' "Not notarized; signed test releases require verified owner feedback and CI."

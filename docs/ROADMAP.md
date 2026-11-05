@@ -42,7 +42,7 @@ Exit: tested, functional, stable native app foundation.
 
 - [ ] Implement authorized provider integration
 - [ ] Play/pause/next/previous, metadata, artwork, media keys
-- [ ] Validate v0.5.1 automatic/artist search and temporary queue on the owner's Mac; library and My Wave remain future work subject to permission
+- [ ] Validate v0.5.2 selectable scrolling search results, queue, saved-session recovery and Keychain upgrade on the owner's Mac; liked tracks and My Wave remain future work subject to permission
 - [ ] Session expiration, errors, recovery
 
 Exit: reproducible permitted end-to-end music playback.
@@ -73,10 +73,11 @@ audits, PR merges, further releases and planning until the owner provides
 feedback about that exact build. The feedback, including a negative bug
 report, automatically authorizes the next complete repair-and-release
 cycle; **no separate permission to publish is required**. Feedback does
-not mean milestone acceptance. The published v0.5.0 received feedback on
-search and animations; next signed test version is v0.5.1, published only
-after exact-head CI and package/signing verification. The guarded, one-shot
-merge marker prevents unrelated commits from triggering a release.
+not mean milestone acceptance. The published v0.5.1 received feedback on
+search-result clipping and recurring Keychain/Yandex sign-in; next signed
+test version is v0.5.2, published only after exact-head CI and package/signing
+verification. The guarded, one-shot merge marker prevents unrelated pushes
+from triggering a release.
 
 ## Mandatory milestone gate
 

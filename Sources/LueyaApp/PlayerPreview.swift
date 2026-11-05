@@ -10,6 +10,7 @@ struct PlayerPreview: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var query = ""
+    @State private var showingResults = false
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var draftSeekSeconds: Double?
     @State private var contentRevealed = false
@@ -45,8 +46,10 @@ struct PlayerPreview: View {
                 case .failed(let message):
                     VStack(alignment: .leading, spacing: 13) {
                         statusLine(message, symbol: "info.circle")
-                        Button("Try again") { signIn.signIn() }
+                        Button("Retry") { signIn.retryFailure() }
                             .buttonStyle(QuietGlassButtonStyle(surface: .filled))
+                        Button("Sign in again") { signIn.signIn() }
+                            .buttonStyle(QuietGlassButtonStyle(surface: .text))
                     }
                 }
             }
@@ -71,6 +74,12 @@ struct PlayerPreview: View {
         .onDisappear {
             searchDebounceTask?.cancel()
             stopMotion()
+        }
+        .onChange(of: statusPhase) { _, phase in
+            if phase != 3 {
+                showingResults = false
+                query = ""
+            }
         }
         .onChange(of: reduceMotion) { _, enabled in
             if enabled {
@@ -173,9 +182,31 @@ struct PlayerPreview: View {
 
     private func signedInContent(account: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            playerSection
-            divider
-            searchSection
+            if showingResults {
+                HStack {
+                    Button {
+                        showingResults = false
+                    } label: {
+                        Label("Player", systemImage: "chevron.left")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 8)
+                            .frame(height: 28)
+                    }
+                    .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                    .accessibilityLabel("Back to player")
+                    Spacer()
+                    Text("CHOOSE A TRACK")
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(secondary)
+                }
+                searchSection
+            } else {
+                playerSection
+                divider
+                searchSection
+            }
+
             divider
             HStack(spacing: 9) {
                 Image(systemName: "checkmark.circle")
@@ -189,11 +220,15 @@ struct PlayerPreview: View {
                         signIn.signOut()
                     }
                 }
-                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
-                    .accessibilityHint("Remove the local Keychain session")
+                .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                .accessibilityHint("Remove the local Keychain session")
             }
             .font(.system(size: 11))
             .foregroundStyle(secondary)
+
+            if let notice = signIn.sessionNotice {
+                statusLine(notice, symbol: "wifi.exclamationmark")
+            }
         }
     }
 
@@ -349,6 +384,7 @@ struct PlayerPreview: View {
                         signIn.resetSearch()
                         let term = updated.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !term.isEmpty else { return }
+                        showingResults = true
                         searchDebounceTask = Task { @MainActor in
                             try? await Task.sleep(for: .milliseconds(450))
                             guard !Task.isCancelled else { return }
@@ -363,7 +399,7 @@ struct PlayerPreview: View {
                 }
                 .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
                 .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel("Search")
+                .accessibilityLabel("Show search results")
             }
             .padding(.leading, 12)
             .padding(.trailing, 4)
@@ -375,22 +411,33 @@ struct PlayerPreview: View {
                     .strokeBorder(.white.opacity(0.76), lineWidth: 1)
             }
 
+            if showingResults {
+                searchResultsPane
+            }
+        }
+    }
+
+    /// The panel has a stable result viewport even while async search updates.
+    /// The player is replaced rather than pushed behind the menu-bar footer.
+    private var searchResultsPane: some View {
+        Group {
             if !signIn.searchResults.isEmpty {
                 ScrollView(.vertical) {
                     LazyVStack(spacing: 5) {
                         ForEach(signIn.searchResults) { track in
                             Button {
                                 signIn.play(track)
+                                showingResults = false
                             } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: signIn.currentTrack?.id == track.id
                                         ? "waveform" : "music.note")
                                         .font(.system(size: 13))
                                         .foregroundStyle(accent)
-                                        .frame(width: 24)
-                                    VStack(alignment: .leading, spacing: 3) {
+                                        .frame(width: 22)
+                                    VStack(alignment: .leading, spacing: 4) {
                                         Text(track.title)
-                                            .font(.system(size: 11, weight: .medium))
+                                            .font(.system(size: 12, weight: .medium))
                                             .lineLimit(1)
                                         Text(track.artistName)
                                             .font(.system(size: 10))
@@ -404,32 +451,37 @@ struct PlayerPreview: View {
                                         .foregroundStyle(secondary)
                                 }
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 9)
+                                .frame(height: 43)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(QuietGlassButtonStyle(
-                                surface: signIn.currentTrack?.id == track.id ? .filled : .text
+                                surface: signIn.currentTrack?.id == track.id ? .filled : .subtle
                             ))
                             .accessibilityLabel("Play \(track.title) by \(track.artistName)")
                         }
                     }
+                    .padding(.trailing, 5)
                 }
-                .frame(maxHeight: 200)
+                .scrollIndicators(.visible)
+                .accessibilityLabel("Search results")
             } else {
-                switch signIn.searchStatus {
-                case .ready:
-                    statusLine("No tracks found. Try another search.", symbol: "magnifyingglass")
-                case .failed(let message):
-                    statusLine(message, symbol: "info.circle")
-                case .idle:
-                    Text("Search and choose a song to start listening.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(secondary)
-                case .searching:
-                    statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                VStack(alignment: .leading, spacing: 8) {
+                    switch signIn.searchStatus {
+                    case .ready:
+                        statusLine("No tracks found. Try another search.", symbol: "magnifyingglass")
+                    case .failed(let message):
+                        statusLine(message, symbol: "info.circle")
+                    case .idle:
+                        statusLine("Enter a song or artist.", symbol: "magnifyingglass")
+                    case .searching:
+                        statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                    }
+                    Spacer(minLength: 0)
                 }
             }
         }
+        .frame(height: 190, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var statusPhase: Int {
@@ -472,6 +524,7 @@ struct PlayerPreview: View {
 
     private func performSearch() {
         searchDebounceTask?.cancel()
+        showingResults = true
         signIn.searchTracks(query)
     }
 

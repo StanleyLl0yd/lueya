@@ -3,6 +3,22 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.2] — selectable search and resilient saved sessions
+
+- Place search results in a dedicated, fixed-height scrolling view inside
+  the compact menu-bar panel instead of clipping them beneath its footer.
+- Display title, artist and duration for every result. Playing one selected
+  row returns to the normal player; no automatic first-result playback.
+- Migrate legacy ad-hoc-created Keychain credentials into a versioned
+  entry created by the certificate-signed app. Verify the new entry before
+  best-effort cleanup and retain the old copy if migration fails.
+- Preserve loaded tokens in memory through network errors. An HTTP 503 or
+  temporary connection failure no longer forces fresh Yandex sign-in.
+- Distinguish retrying session restoration from starting a new OAuth flow.
+- Add synthetic 401 and 503 restoration regression coverage.
+- On-device Keychain ACL behavior and actual search panel usability remain
+  pending the owner's testing. No change to the audio engine or offline policy.
+
 ## [0.5.1] — search and tactile interaction fixes
 
 - Run catalog search automatically after a short typing debounce; Enter and

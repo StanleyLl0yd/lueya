@@ -40,13 +40,54 @@ public actor YandexMusicSession {
     }
 
     public func restoreAccount() async throws -> MusicAccountStatus? {
-        guard let stored = try store.load() else { return nil }
+        let stored: OAuthTokens
+        if let tokens {
+            // Avoid repeating Keychain authorization after a network failure.
+            stored = tokens
+        } else {
+            guard let saved = try store.load() else { return nil }
+            stored = saved
+            tokens = saved
+        }
+
         let generation = sessionGeneration
-        let (active, account) = try await validatedAccount(using: stored, generation: generation)
-        try Task.checkCancellation()
-        guard sessionGeneration == generation else { throw CancellationError() }
-        tokens = active
-        return account
+        do {
+            let (active, account) = try await validatedAccount(
+                using: stored, generation: generation
+            )
+            try Task.checkCancellation()
+            guard sessionGeneration == generation else { throw CancellationError() }
+            tokens = active
+            return account
+        } catch {
+            try Task.checkCancellation()
+            guard sessionGeneration == generation else { throw CancellationError() }
+            if Self.isTemporaryNetworkFailure(error) {
+                // The saved token is still present. A temporary network outage
+                // must not turn session restoration into a new OAuth login.
+                return MusicAccountStatus(account: nil)
+            }
+            throw error
+        }
+    }
+
+    private static func isTemporaryNetworkFailure(_ error: Error) -> Bool {
+        if error is URLError { return true }
+        if let failure = error as? MusicAPIError {
+            switch failure {
+            case .rateLimited: return true
+            case .httpStatus(let code): return code >= 500
+            default: return false
+            }
+        }
+        if let failure = error as? YandexOAuthError {
+            switch failure {
+            case .rateLimited: return true
+            case .httpStatus(let code): return code >= 500
+            default: return false
+            }
+        }
+        return false
     }
 
     public func validAccessToken() async throws -> String? {

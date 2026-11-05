@@ -42,9 +42,10 @@
   on an already delivered test release authorizes the complete next cycle
   (fixes, CI, signing, release) without a separate release-approval question.
   The feedback can be negative; it is not milestone acceptance.
-- Current delivered test build: v0.5.0; owner reported ineffective search
-  and missing button animation. Next candidate: v0.5.1. After publishing
-  v0.5.1, freeze immediately until feedback on that exact version.
+- Current delivered test build: v0.5.1. Owner reported clipped/unselectable
+  search results, recurring Keychain prompts and repeat account sign-in.
+  Next candidate: v0.5.2, then freeze until feedback on that exact version.
+  Never claim on-device Keychain continuity based on CI alone.
 - Signed publish uses only the already provisioned protected environment
   and a version-specific guarded merge marker, never an arbitrary push.
   Optional manual dispatch retains owner-only explicit confirmation.

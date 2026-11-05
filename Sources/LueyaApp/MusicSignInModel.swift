@@ -29,7 +29,14 @@ final class MusicSignInModel {
         case failed(String)
     }
 
+    private enum FailedOperation {
+        case restore
+        case signIn
+        case signOut
+    }
+
     private(set) var status: Status = .restoring
+    private(set) var sessionNotice: String?
     private(set) var code: OAuthDeviceCode?
     private(set) var sourceProbe: SourceProbeStatus = .idle
     private(set) var searchStatus: SearchStatus = .idle
@@ -55,6 +62,7 @@ final class MusicSignInModel {
     @ObservationIgnored private var playQueue: [MusicSearchTrack] = []
     @ObservationIgnored private var currentQueueIndex: Int?
     @ObservationIgnored private var hasRestored = false
+    @ObservationIgnored private var failedOperation: FailedOperation = .restore
     @ObservationIgnored private var signInTask: Task<Void, Never>?
     @ObservationIgnored private var sourceProbeTask: Task<Void, Never>?
     @ObservationIgnored private var replayTask: Task<Void, Never>?
@@ -68,16 +76,35 @@ final class MusicSignInModel {
 
         do {
             if let account = try await session.restoreAccount() {
+                sessionNotice = account.account == nil
+                    ? "Saved session loaded. Account verification is temporarily unavailable."
+                    : nil
                 status = .signedIn(account.account?.login ?? "Yandex Music account")
             } else {
+                sessionNotice = nil
                 status = .signedOut
             }
         } catch {
+            failedOperation = .restore
             status = .failed(Self.message(for: error))
         }
     }
 
+    func retryFailure() {
+        switch failedOperation {
+        case .restore:
+            hasRestored = false
+            status = .restoring
+            Task { await restoreIfNeeded() }
+        case .signIn:
+            signIn()
+        case .signOut:
+            signOut()
+        }
+    }
+
     func signIn() {
+        sessionNotice = nil
         clearCatalog()
         cancelSourceProbe()
         cancelPlayback()
@@ -95,12 +122,14 @@ final class MusicSignInModel {
                 let account = try await session.completeSignIn(code: received)
                 try Task.checkCancellation()
                 code = nil
+                failedOperation = .signIn
                 status = .signedIn(account.account?.login ?? "Yandex Music account")
             } catch is CancellationError {
                 code = nil
                 status = .signedOut
             } catch {
                 code = nil
+                failedOperation = .signIn
                 status = .failed(Self.message(for: error))
             }
         }
@@ -114,6 +143,7 @@ final class MusicSignInModel {
     }
 
     func signOut() {
+        sessionNotice = nil
         clearCatalog()
         cancelSourceProbe()
         cancelPlayback()
@@ -127,6 +157,7 @@ final class MusicSignInModel {
                 try await session.signOut()
                 status = .signedOut
             } catch {
+                failedOperation = .signOut
                 status = .failed(Self.message(for: error))
             }
         }
@@ -456,8 +487,13 @@ final class MusicSignInModel {
                 return "Could not verify the Yandex Music account."
             }
         }
-        if error is TokenStorageError {
-            return "Unable to access the local Keychain session."
+        if let keychain = error as? TokenStorageError {
+            switch keychain {
+            case .invalidStoredData:
+                return "Saved Keychain session is unreadable. Sign in again if retry fails."
+            case .keychainStatus:
+                return "macOS denied access to your saved session. Retry and choose Always Allow in Keychain."
+            }
         }
         return "Could not connect. Check your network and try again."
     }
