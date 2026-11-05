@@ -313,7 +313,7 @@ public struct YandexMusicSearchProvider: Sendable {
                 artist.name.map { String($0.prefix(100)) }
             }
             let firstArtist = result.artists?.first.flatMap { artist -> MusicSearchArtist? in
-                guard let id = artist.id?.value.flatMap(validatedNumericID),
+                guard let id = artist.id.flatMap { validatedNumericID($0.value) },
                       let name = artist.name, !name.isEmpty else { return nil }
                 return MusicSearchArtist(id: id, name: String(name.prefix(200)))
             }
@@ -331,7 +331,7 @@ public struct YandexMusicSearchProvider: Sendable {
     }
 
     private static func decodedAlbum(_ album: AlbumResult) -> MusicSearchAlbum? {
-        guard let id = album.id?.value.flatMap(validatedNumericID),
+        guard let id = album.id.flatMap { validatedNumericID($0.value) },
               let title = album.title?.trimmingCharacters(in: .whitespacesAndNewlines),
               !title.isEmpty, album.available != false else { return nil }
         return MusicSearchAlbum(
