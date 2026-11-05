@@ -43,6 +43,7 @@ final class MusicSignInModel {
     private(set) var searchResults: [MusicSearchTrack] = []
     private(set) var artistResults: [MusicSearchArtist] = []
     private(set) var selectedArtist: MusicSearchArtist?
+    private var previousSearchTracks: [MusicSearchTrack] = []
     private(set) var currentTrack: MusicSearchTrack?
 
     var canSkipNext: Bool {
@@ -167,6 +168,7 @@ final class MusicSignInModel {
 
     func resetSearch() {
         cancelSearch()
+        previousSearchTracks = []
         searchResults = []
         artistResults = []
         selectedArtist = nil
@@ -183,6 +185,7 @@ final class MusicSignInModel {
             return
         }
 
+        previousSearchTracks = []
         searchResults = []
         artistResults = []
         selectedArtist = nil
@@ -277,6 +280,8 @@ final class MusicSignInModel {
     func showTracks(for artist: MusicSearchArtist) {
         guard case .signedIn = status else { return }
         cancelSearch()
+        // Keep the unified Songs results for returning from an artist's tracks.
+        previousSearchTracks = searchResults
         searchResults = []
         selectedArtist = artist
         searchStatus = .searching
@@ -309,7 +314,8 @@ final class MusicSignInModel {
     func returnToArtistResults() {
         cancelSearch()
         selectedArtist = nil
-        searchResults = []
+        searchResults = previousSearchTracks
+        previousSearchTracks = []
         searchStatus = .ready
     }
 
@@ -376,6 +382,7 @@ final class MusicSignInModel {
 
     private func clearCatalog() {
         cancelSearch()
+        previousSearchTracks = []
         searchResults = []
         artistResults = []
         selectedArtist = nil
