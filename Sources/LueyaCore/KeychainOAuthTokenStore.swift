@@ -12,6 +12,8 @@ public protocol OAuthTokenStoring: Sendable {
     func delete() throws
 }
 
+/// A versioned account avoids reusing an ACL created by older ad-hoc builds.
+/// The service remains unchanged; no tokens leave the local macOS Keychain.
 public struct KeychainOAuthTokenStore: OAuthTokenStoring {
     private enum Backend {
         case dataProtection
@@ -20,74 +22,122 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
 
     private let service: String
     private let account: String
+    private let legacyAccount: String?
 
     public init(
         service: String = "com.stanleylloyd.lueya.yandex-music",
-        account: String = "oauth-session"
+        account: String = "oauth-session-v2"
     ) {
         self.service = service
         self.account = account
+        self.legacyAccount = account == "oauth-session-v2" ? "oauth-session" : nil
     }
 
     public func load() throws -> OAuthTokens? {
-        let (status, data) = read(.dataProtection)
-        switch status {
-        case errSecSuccess:
-            return try decode(data)
-        case errSecItemNotFound, errSecMissingEntitlement:
-            // An ad-hoc development signature might not have an app-ID entitlement.
-            // The traditional login Keychain is still encrypted by macOS.
-            let (legacyStatus, legacyData) = read(.traditional)
-            switch legacyStatus {
-            case errSecSuccess:
-                return try decode(legacyData)
-            case errSecItemNotFound:
-                return nil
-            default:
-                throw TokenStorageError.keychainStatus(legacyStatus)
-            }
-        default:
-            throw TokenStorageError.keychainStatus(status)
+        if let current = try load(account: account) {
+            return current
         }
+        guard let legacyAccount,
+              let old = try load(account: legacyAccount) else {
+            return nil
+        }
+
+        // Once permitted to read the old item, create a separate account
+        // under the stable, currently signed app's default Keychain ACL.
+        // Never delete the only copy when creating the replacement fails.
+        do {
+            try save(old)
+        } catch {
+            return old
+        }
+        return old
     }
 
     public func save(_ tokens: OAuthTokens) throws {
         let data = try JSONEncoder().encode(tokens)
-        let status = upsert(data, backend: .dataProtection)
+        let primary = upsert(data, backend: .dataProtection, account: account)
 
-        switch status {
+        switch primary {
         case errSecSuccess:
-            // Migrate from the legacy Keychain when a signed build later gains
-            // Data Protection access; leave the new item intact if migration fails.
-            let legacyStatus = SecItemDelete(query(.traditional) as CFDictionary)
-            guard legacyStatus == errSecSuccess || legacyStatus == errSecItemNotFound else {
-                throw TokenStorageError.keychainStatus(legacyStatus)
-            }
+            break
         case errSecMissingEntitlement:
-            let legacyStatus = upsert(data, backend: .traditional)
-            guard legacyStatus == errSecSuccess else {
-                throw TokenStorageError.keychainStatus(legacyStatus)
+            let fallback = upsert(data, backend: .traditional, account: account)
+            guard fallback == errSecSuccess else {
+                throw TokenStorageError.keychainStatus(fallback)
             }
         default:
-            throw TokenStorageError.keychainStatus(status)
+            throw TokenStorageError.keychainStatus(primary)
+        }
+
+        // Check the new Keychain entry before removing the old one.
+        guard let verified = try load(account: account),
+              verified.accessToken == tokens.accessToken,
+              verified.refreshToken == tokens.refreshToken else {
+            throw TokenStorageError.invalidStoredData
+        }
+        switch (verified.expiresAt, tokens.expiresAt) {
+        case (nil, nil):
+            break
+        case (let actual?, let expected?) where
+            abs(actual.timeIntervalSince(expected)) < 0.01:
+            break
+        default:
+            throw TokenStorageError.invalidStoredData
+        }
+
+        // A failed legacy cleanup must not invalidate a verified new item.
+        if let legacyAccount {
+            removeLegacyIfPermitted(legacyAccount)
         }
     }
 
     public func delete() throws {
-        let primary = SecItemDelete(query(.dataProtection) as CFDictionary)
-        guard primary == errSecSuccess || primary == errSecItemNotFound ||
-                primary == errSecMissingEntitlement else {
-            throw TokenStorageError.keychainStatus(primary)
+        // Explicit sign-out deletes both current and historical entries.
+        let accounts = [account] + (legacyAccount.map { [$0] } ?? [])
+        var failure: OSStatus?
+        for account in accounts {
+            for backend in [Backend.dataProtection, .traditional] {
+                let status = SecItemDelete(query(backend, account: account) as CFDictionary)
+                if status != errSecSuccess && status != errSecItemNotFound &&
+                    status != errSecMissingEntitlement {
+                    failure = failure ?? status
+                }
+            }
         }
-
-        let traditional = SecItemDelete(query(.traditional) as CFDictionary)
-        guard traditional == errSecSuccess || traditional == errSecItemNotFound else {
-            throw TokenStorageError.keychainStatus(traditional)
+        if let failure {
+            throw TokenStorageError.keychainStatus(failure)
         }
     }
 
-    private func read(_ backend: Backend) -> (OSStatus, Data?) {
-        var attributes = query(backend)
+    private func load(account: String) throws -> OAuthTokens? {
+        let (primaryStatus, primaryData) = read(.dataProtection, account: account)
+        switch primaryStatus {
+        case errSecSuccess:
+            return try decode(primaryData)
+        case errSecItemNotFound, errSecMissingEntitlement:
+            let (status, data) = read(.traditional, account: account)
+            switch status {
+            case errSecSuccess: return try decode(data)
+            case errSecItemNotFound: return nil
+            default: throw TokenStorageError.keychainStatus(status)
+            }
+        default:
+            throw TokenStorageError.keychainStatus(primaryStatus)
+        }
+    }
+
+    private func removeLegacyIfPermitted(_ legacyAccount: String) {
+        for backend in [Backend.dataProtection, .traditional] {
+            var attributes = query(backend, account: legacyAccount)
+            // Do not show another permission prompt solely to remove the
+            // historical copy. An inaccessible item is removed on sign-out.
+            attributes[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
+            _ = SecItemDelete(attributes as CFDictionary)
+        }
+    }
+
+    private func read(_ backend: Backend, account: String) -> (OSStatus, Data?) {
+        var attributes = query(backend, account: account)
         attributes[kSecReturnData as String] = true
         attributes[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
@@ -95,8 +145,8 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
         return (status, result as? Data)
     }
 
-    private func upsert(_ data: Data, backend: Backend) -> OSStatus {
-        var attributes = query(backend)
+    private func upsert(_ data: Data, backend: Backend, account: String) -> OSStatus {
+        var attributes = query(backend, account: account)
         attributes[kSecValueData as String] = data
         if backend == .dataProtection {
             attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
@@ -105,7 +155,7 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard status == errSecDuplicateItem else { return status }
         return SecItemUpdate(
-            query(backend) as CFDictionary,
+            query(backend, account: account) as CFDictionary,
             [kSecValueData as String: data] as CFDictionary
         )
     }
@@ -118,7 +168,7 @@ public struct KeychainOAuthTokenStore: OAuthTokenStoring {
         return tokens
     }
 
-    private func query(_ backend: Backend) -> [String: Any] {
+    private func query(_ backend: Backend, account: String) -> [String: Any] {
         var attributes: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

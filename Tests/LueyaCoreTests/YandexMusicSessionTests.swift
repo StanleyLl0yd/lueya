@@ -66,6 +66,68 @@ final class YandexMusicSessionTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    func testTemporaryAccountOutagePreservesSavedSessionWithoutNewLogin() async throws {
+        let store = MemoryTokenStore()
+        let oauth = YandexOAuthClient(
+            transport: SessionOAuthTransport(),
+            clientID: "id", clientSecret: "secret"
+        )
+        let original = YandexMusicSession(
+            oauth: oauth,
+            api: YandexMusicAPIClient(transport: AccountStatusTransport()),
+            store: store
+        )
+        let code = try await original.beginSignIn()
+        _ = try await original.completeSignIn(code: code)
+
+        let restored = YandexMusicSession(
+            oauth: oauth,
+            api: YandexMusicAPIClient(transport: AccountStatusTransport(status: 503)),
+            store: store
+        )
+        let beforeLoad = store.loadCount()
+        let status = try await restored.restoreAccount()
+        XCTAssertNotNil(status)
+        XCTAssertNil(status?.account)
+        XCTAssertEqual(store.loadCount(), beforeLoad + 1)
+
+        let token = try await restored.validAccessToken()
+        XCTAssertEqual(token, "sample-token")
+        XCTAssertEqual(store.loadCount(), beforeLoad + 1)
+
+        let again = try await restored.restoreAccount()
+        XCTAssertNil(again?.account)
+        XCTAssertEqual(store.loadCount(), beforeLoad + 1)
+    }
+
+    func testUnauthorizedRestoreDoesNotEraseStoredCredentials() async throws {
+        let store = MemoryTokenStore()
+        let oauth = YandexOAuthClient(
+            transport: SessionOAuthTransport(),
+            clientID: "id", clientSecret: "secret"
+        )
+        let original = YandexMusicSession(
+            oauth: oauth,
+            api: YandexMusicAPIClient(transport: AccountStatusTransport()),
+            store: store
+        )
+        let code = try await original.beginSignIn()
+        _ = try await original.completeSignIn(code: code)
+
+        let restored = YandexMusicSession(
+            oauth: oauth,
+            api: YandexMusicAPIClient(transport: AccountStatusTransport(status: 401)),
+            store: store
+        )
+        do {
+            _ = try await restored.restoreAccount()
+            XCTFail("Unauthorized account must not be silently accepted")
+        } catch let error as MusicAPIError {
+            XCTAssertEqual(error, .unauthorized)
+        }
+        XCTAssertEqual(try store.load()?.accessToken, "sample-token")
+    }
+
     private actor SessionOAuthTransport: MusicHTTPTransport {
         func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
             guard request.url?.host == "oauth.yandex.ru" else {
@@ -120,9 +182,17 @@ final class YandexMusicSessionTests: XCTestCase {
     private final class MemoryTokenStore: OAuthTokenStoring, @unchecked Sendable {
         private let lock = NSLock()
         private var tokens: OAuthTokens?
+        private var reads = 0
+
+        func loadCount() -> Int {
+            lock.withLock { reads }
+        }
 
         func load() throws -> OAuthTokens? {
-            lock.withLock { tokens }
+            lock.withLock {
+                reads += 1
+                return tokens
+            }
         }
 
         func save(_ value: OAuthTokens) throws {
