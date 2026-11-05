@@ -9,6 +9,7 @@ struct PlayerPreview: View {
         case all = "All"
         case songs = "Songs"
         case artists = "Artists"
+        case albums = "Albums"
     }
 
     let signIn: MusicSignInModel
@@ -256,10 +257,53 @@ struct PlayerPreview: View {
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .lineLimit(2)
                         .contentTransition(.opacity)
-                    Text(signIn.currentTrack?.artistName ?? "Find something to listen to")
-                        .font(.system(size: 11))
-                        .foregroundStyle(secondary)
-                        .lineLimit(2)
+                    if let track = signIn.currentTrack {
+                        Button {
+                            if let artist = track.artist {
+                                signIn.showTracks(for: artist)
+                                showingResults = true
+                            } else {
+                                // Without a trusted artist ID, let the listener
+                                // choose a match instead of guessing an identity.
+                                query = track.artistName
+                                searchScope = .artists
+                                performSearch()
+                            }
+                        } label: {
+                            Text(track.artistName)
+                                .font(.system(size: 11))
+                                .foregroundStyle(accent)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Browse music by \(track.artistName)")
+
+                        if let album = track.album {
+                            Button {
+                                signIn.showAlbum(album)
+                                showingResults = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "square.stack")
+                                        .font(.system(size: 9))
+                                    Text(album.title)
+                                        .lineLimit(1)
+                                }
+                                .font(.system(size: 10))
+                                .foregroundStyle(accent)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Browse album \(album.title)")
+                        }
+                    } else {
+                        Text("Find something to listen to")
+                            .font(.system(size: 11))
+                            .foregroundStyle(secondary)
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -428,7 +472,7 @@ struct PlayerPreview: View {
                             performSearch()
                         }
                     }
-                    .accessibilityLabel("Search songs and artists")
+                    .accessibilityLabel("Search songs, albums and artists")
                 if !query.isEmpty {
                     Button {
                         query = ""
@@ -477,24 +521,25 @@ struct PlayerPreview: View {
         }
     }
 
-    /// A fixed-height scroll viewport keeps the surrounding MenuBarExtra
-    /// frame unchanged. Plain, full-width rows do not animate their hit areas.
+    /// Fixed-size scrolling content avoids resizing the native menu-bar window.
     private var searchResultsPane: some View {
         ScrollView(.vertical) {
             LazyVStack(alignment: .leading, spacing: 6) {
-                if let artist = signIn.selectedArtist {
-                    Button {
-                        signIn.returnToArtistResults()
-                    } label: {
-                        Label("All artists", systemImage: "chevron.left")
-                            .font(.system(size: 11, weight: .medium))
-                            .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(accent)
+                if let album = signIn.selectedAlbum {
+                    navigationBack("Back", action: signIn.returnFromAlbum)
+                    resultHeading("ALBUM")
+                    Text(album.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(2)
+                    Text([album.artistName, album.year.map(String.init) ?? ""]
+                        .filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.system(size: 10))
+                        .foregroundStyle(secondary)
+                } else if let artist = signIn.selectedArtist {
+                    navigationBack("Search results", action: signIn.returnToArtistResults)
                     Text(artist.name)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(1)
                 }
 
                 if signIn.searchStatus == .searching && displayedCount == 0 {
@@ -502,11 +547,7 @@ struct PlayerPreview: View {
                 } else if case .failed(let message) = signIn.searchStatus {
                     statusLine(message, symbol: "info.circle")
                 } else if displayedCount == 0 {
-                    if signIn.searchStatus == .ready {
-                        statusLine("No matches. Try another search.", symbol: "magnifyingglass")
-                    } else {
-                        statusLine("Searching the music catalog…", symbol: "magnifyingglass")
-                    }
+                    statusLine("Nothing found here.", symbol: "magnifyingglass")
                 } else {
                     if shouldShowArtists && !signIn.artistResults.isEmpty {
                         resultHeading("ARTISTS")
@@ -514,10 +555,10 @@ struct PlayerPreview: View {
                             Button {
                                 signIn.showTracks(for: artist)
                             } label: {
-                                HStack(spacing: 10) {
+                                HStack(spacing: 9) {
                                     Image(systemName: "person.crop.circle")
                                         .foregroundStyle(accent)
-                                        .frame(width: 24)
+                                        .frame(width: 23)
                                     Text(artist.name)
                                         .font(.system(size: 12, weight: .medium))
                                         .lineLimit(1)
@@ -533,11 +574,66 @@ struct PlayerPreview: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Show tracks by \(artist.name)")
+                            .accessibilityLabel("Browse artist \(artist.name)")
+                        }
+                    }
+                    if shouldShowAlbums && !visibleAlbums.isEmpty {
+                        resultHeading(signIn.selectedArtist == nil ? "ALBUMS" : "ALBUMS & SINGLES")
+                        ForEach(visibleAlbums) { album in
+                            Button {
+                                signIn.showAlbum(album)
+                            } label: {
+                                HStack(spacing: 9) {
+                                    Image(systemName: "square.stack")
+                                        .foregroundStyle(accent)
+                                        .frame(width: 23)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(album.title)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .lineLimit(1)
+                                        Text([album.artistName, album.year.map(String.init) ?? ""]
+                                            .filter { !$0.isEmpty }.joined(separator: " · "))
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer(minLength: 2)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(secondary)
+                                }
+                                .padding(.horizontal, 10)
+                                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+                                .background(.white.opacity(0.44),
+                                            in: RoundedRectangle(cornerRadius: 10))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Browse album \(album.title)")
+                        }
+                        if signIn.selectedArtist != nil && signIn.hasMoreArtistAlbums {
+                            Button {
+                                signIn.loadMoreArtistAlbums()
+                            } label: {
+                                HStack {
+                                    Text(signIn.isLoadingMoreArtistAlbums
+                                         ? "Loading albums…" : "More albums")
+                                    Spacer()
+                                    Image(systemName: "arrow.down")
+                                }
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(accent)
+                                .padding(.horizontal, 9)
+                                .frame(height: 32)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(signIn.isLoadingMoreArtistAlbums)
                         }
                     }
                     if shouldShowTracks && !signIn.searchResults.isEmpty {
-                        resultHeading(signIn.selectedArtist == nil ? "SONGS" : "TRACKS")
+                        resultHeading(signIn.selectedAlbum != nil ? "ALBUM TRACKS" :
+                            signIn.selectedArtist != nil ? "POPULAR TRACKS" : "SONGS")
                         ForEach(signIn.searchResults) { track in
                             Button {
                                 signIn.play(track)
@@ -581,7 +677,18 @@ struct PlayerPreview: View {
         }
         .scrollIndicators(.visible)
         .frame(height: 164)
-        .accessibilityLabel("Search results")
+        .accessibilityLabel("Catalog results")
+    }
+
+    private func navigationBack(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: "chevron.left")
+                .font(.system(size: 11, weight: .medium))
+                .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(accent)
     }
 
     private func resultHeading(_ title: String) -> some View {
@@ -593,15 +700,28 @@ struct PlayerPreview: View {
     }
 
     private var shouldShowArtists: Bool {
-        signIn.selectedArtist == nil && searchScope != .songs
+        signIn.selectedArtist == nil && signIn.selectedAlbum == nil
+            && (searchScope == .all || searchScope == .artists)
+    }
+
+    private var shouldShowAlbums: Bool {
+        signIn.selectedAlbum == nil
+            && (signIn.selectedArtist != nil
+                || searchScope == .all || searchScope == .albums)
+    }
+
+    private var visibleAlbums: [MusicSearchAlbum] {
+        signIn.selectedArtist == nil ? signIn.albumResults : signIn.artistAlbums
     }
 
     private var shouldShowTracks: Bool {
-        signIn.selectedArtist != nil || searchScope != .artists
+        signIn.selectedAlbum != nil || signIn.selectedArtist != nil
+            || searchScope == .all || searchScope == .songs
     }
 
     private var displayedCount: Int {
         (shouldShowArtists ? signIn.artistResults.count : 0)
+            + (shouldShowAlbums ? visibleAlbums.count : 0)
             + (shouldShowTracks ? signIn.searchResults.count : 0)
     }
 
@@ -655,6 +775,7 @@ struct PlayerPreview: View {
         case .all: signIn.searchAll(query)
         case .songs: signIn.searchTracks(query)
         case .artists: signIn.searchArtists(query)
+        case .albums: signIn.searchAlbums(query)
         }
     }
 
