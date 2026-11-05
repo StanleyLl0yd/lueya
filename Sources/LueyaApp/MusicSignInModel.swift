@@ -207,6 +207,43 @@ final class MusicSignInModel {
         }
     }
 
+    /// Unified results: show the matching artist first, then song titles.
+    /// Both catalog calls share the existing authenticated session.
+    func searchAll(_ text: String) {
+        guard case .signedIn = status else { return }
+        resetSearch()
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        searchStatus = .searching
+        let generation = searchGeneration
+        searchTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                async let matchedArtists = searchProvider.artists(
+                    matching: query, accessToken: token
+                )
+                async let matchedTracks = searchProvider.tracks(
+                    matching: query, accessToken: token
+                )
+                let (artists, tracks) = try await (matchedArtists, matchedTracks)
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                artistResults = artists
+                searchResults = tracks
+                searchStatus = .ready
+            } catch is CancellationError {
+                // Superseded queries must never replace current results.
+            } catch {
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                searchStatus = .failed(Self.searchMessage(for: error))
+            }
+        }
+    }
+
     func searchArtists(_ text: String) {
         guard case .signedIn = status else { return }
         resetSearch()

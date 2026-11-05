@@ -6,6 +6,7 @@ import SwiftUI
 /// The compact menu-bar player. No diagnostic track IDs or external-site buttons.
 struct PlayerPreview: View {
     private enum SearchScope: String, CaseIterable {
+        case all = "All"
         case songs = "Songs"
         case artists = "Artists"
     }
@@ -17,8 +18,7 @@ struct PlayerPreview: View {
 
     @State private var query = ""
     @State private var showingResults = false
-    @State private var searchScope: SearchScope = .songs
-    @State private var resultsPage = 0
+    @State private var searchScope: SearchScope = .all
     @State private var coverImage: NSImage?
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var draftSeekSeconds: Double?
@@ -68,14 +68,17 @@ struct PlayerPreview: View {
             .opacity(contentRevealed || reduceMotion ? 1 : 0)
             .offset(y: contentRevealed || reduceMotion ? 0 : 5)
 
+            Spacer(minLength: 0)
             footer
                 .padding(.top, 18)
         }
         .padding(21)
-        .frame(width: 382)
+        // Keep the menu-bar panel's hit-testing bounds stable as search opens.
+        .frame(width: 382, height: statusPhase == 3 ? 454 : nil, alignment: .top)
         .foregroundStyle(ink)
         .background { warmGlass }
         .environment(\.colorScheme, .light)
+        .preferredColorScheme(.light)
         .tint(accent)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.26), value: statusPhase)
         .task { await signIn.restoreIfNeeded() }
@@ -88,7 +91,6 @@ struct PlayerPreview: View {
         .onChange(of: statusPhase) { _, phase in
             if phase != 3 {
                 showingResults = false
-                resultsPage = 0
                 query = ""
             }
         }
@@ -192,25 +194,8 @@ struct PlayerPreview: View {
     }
 
     private func signedInContent(account: String) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             if showingResults {
-                HStack {
-                    Button {
-                        showingResults = false
-                    } label: {
-                        Label("Player", systemImage: "chevron.left")
-                            .font(.system(size: 11, weight: .medium))
-                            .padding(.horizontal, 8)
-                            .frame(height: 28)
-                    }
-                    .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
-                    .accessibilityLabel("Back to player")
-                    Spacer()
-                    Text("CHOOSE A TRACK")
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(1.2)
-                        .foregroundStyle(secondary)
-                }
                 searchSection
             } else {
                 playerSection
@@ -218,6 +203,7 @@ struct PlayerPreview: View {
                 searchSection
             }
 
+            Spacer(minLength: 0)
             divider
             HStack(spacing: 9) {
                 Image(systemName: "checkmark.circle")
@@ -239,8 +225,10 @@ struct PlayerPreview: View {
 
             if let notice = signIn.sessionNotice {
                 statusLine(notice, symbol: "wifi.exclamationmark")
+                    .lineLimit(2)
             }
         }
+        .frame(height: 331, alignment: .top)
     }
 
     private var playerSection: some View {
@@ -382,17 +370,79 @@ struct PlayerPreview: View {
     }
 
     private var searchSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: showingResults ? 6 : 10) {
             HStack {
-                Text("EXPLORE")
-                    .font(.system(size: 9, weight: .semibold))
-                    .tracking(1.4)
-                    .foregroundStyle(secondary)
+                if showingResults {
+                    Button {
+                        searchDebounceTask?.cancel()
+                        showingResults = false
+                    } label: {
+                        Label("Player", systemImage: "chevron.left")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 8)
+                            .frame(height: 27)
+                    }
+                    .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                    .accessibilityLabel("Back to player")
+                } else {
+                    Text("EXPLORE")
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(secondary)
+                }
                 Spacer()
                 if signIn.searchStatus == .searching {
                     ProgressView().controlSize(.mini)
                         .accessibilityLabel("Searching")
                 }
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundStyle(secondary)
+                TextField("Search music", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .onSubmit(performSearch)
+                    .onChange(of: query) { _, updated in
+                        searchDebounceTask?.cancel()
+                        signIn.resetSearch()
+                        let term = updated.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !term.isEmpty else {
+                            showingResults = false
+                            return
+                        }
+                        showingResults = true
+                        searchDebounceTask = Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(350))
+                            guard !Task.isCancelled else { return }
+                            performSearch()
+                        }
+                    }
+                    .accessibilityLabel("Search songs and artists")
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .frame(width: 29, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(secondary)
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.leading, 12)
+            .padding(.trailing, 7)
+            .frame(height: 40)
+            .background(.white.opacity(0.58),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(.white.opacity(0.76), lineWidth: 1)
+                    .allowsHitTesting(false)
             }
 
             if showingResults {
@@ -401,11 +451,8 @@ struct PlayerPreview: View {
                         Button(scope.rawValue) {
                             guard searchScope != scope else { return }
                             searchScope = scope
-                            resultsPage = 0
                             signIn.resetSearch()
-                            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                performSearch()
-                            }
+                            performSearch()
                         }
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
@@ -417,212 +464,133 @@ struct PlayerPreview: View {
                     Spacer()
                 }
                 .accessibilityLabel("Search category")
-            }
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12))
-                    .foregroundStyle(secondary)
-                TextField("Song or artist", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12))
-                    .onSubmit(performSearch)
-                    .onChange(of: query) { _, updated in
-                        searchDebounceTask?.cancel()
-                        signIn.resetSearch()
-                        resultsPage = 0
-                        let term = updated.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !term.isEmpty else { return }
-                        showingResults = true
-                        searchDebounceTask = Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(450))
-                            guard !Task.isCancelled else { return }
-                            performSearch()
-                        }
-                    }
-                    .accessibilityLabel("Search music")
-                Button(action: performSearch) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 29, height: 28)
-                }
-                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
-                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel("Show search results")
-            }
-            .padding(.leading, 12)
-            .padding(.trailing, 4)
-            .frame(height: 40)
-            .background(.white.opacity(0.58),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(.white.opacity(0.76), lineWidth: 1)
-            }
-
-            if showingResults {
                 searchResultsPane
             }
         }
     }
 
-    /// Fixed rows with explicit pagination avoid ScrollView capturing click
-    /// and hover events inside the menu-bar panel.
+    /// A fixed-height scroll viewport keeps the surrounding MenuBarExtra
+    /// frame unchanged. Plain, full-width rows do not animate their hit areas.
     private var searchResultsPane: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            if let artist = signIn.selectedArtist {
-                HStack {
+        ScrollView(.vertical) {
+            LazyVStack(alignment: .leading, spacing: 6) {
+                if let artist = signIn.selectedArtist {
                     Button {
-                        resultsPage = 0
                         signIn.returnToArtistResults()
                     } label: {
-                        Label("Artists", systemImage: "chevron.left")
-                            .font(.system(size: 10, weight: .medium))
-                            .padding(.horizontal, 7)
-                            .frame(height: 25)
-                    }
-                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
-                    Spacer()
-                    Text(artist.name)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
-                }
-            }
-
-            if resultCount > 0 {
-                if searchScope == .artists && signIn.selectedArtist == nil {
-                    ForEach(visibleArtists) { artist in
-                        Button {
-                            resultsPage = 0
-                            signIn.showTracks(for: artist)
-                        } label: {
-                            HStack(spacing: 9) {
-                                Image(systemName: "person.crop.circle")
-                                    .foregroundStyle(accent)
-                                    .frame(width: 24)
-                                Text(artist.name)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .lineLimit(1)
-                                Spacer(minLength: 2)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(secondary)
-                            }
-                            .padding(.horizontal, 10)
-                            .frame(height: 41)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Label("All artists", systemImage: "chevron.left")
+                            .font(.system(size: 11, weight: .medium))
+                            .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
                             .contentShape(Rectangle())
-                        }
-                        .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
-                        .accessibilityLabel("Show tracks by \(artist.name)")
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(accent)
+                    Text(artist.name)
+                        .font(.system(size: 12, weight: .semibold))
+                }
+
+                if signIn.searchStatus == .searching && displayedCount == 0 {
+                    statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                } else if case .failed(let message) = signIn.searchStatus {
+                    statusLine(message, symbol: "info.circle")
+                } else if displayedCount == 0 {
+                    statusLine("No matches. Try another search.", symbol: "magnifyingglass")
                 } else {
-                    ForEach(visibleTracks) { track in
-                        Button {
-                            signIn.play(track)
-                            showingResults = false
-                        } label: {
-                            HStack(spacing: 9) {
-                                Image(systemName: signIn.currentTrack?.id == track.id
-                                    ? "waveform" : "music.note")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(accent)
-                                    .frame(width: 22)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(track.title)
+                    if shouldShowArtists && !signIn.artistResults.isEmpty {
+                        resultHeading("ARTISTS")
+                        ForEach(signIn.artistResults.prefix(searchScope == .all ? 3 : 20)) { artist in
+                            Button {
+                                signIn.showTracks(for: artist)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "person.crop.circle")
+                                        .foregroundStyle(accent)
+                                        .frame(width: 24)
+                                    Text(artist.name)
                                         .font(.system(size: 12, weight: .medium))
                                         .lineLimit(1)
-                                    Text(track.artistName)
+                                    Spacer(minLength: 2)
+                                    Image(systemName: "chevron.right")
                                         .font(.system(size: 10))
                                         .foregroundStyle(secondary)
-                                        .lineLimit(1)
                                 }
-                                Spacer(minLength: 3)
-                                Text(formattedMilliseconds(track.durationMilliseconds))
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .monospacedDigit()
-                                    .foregroundStyle(secondary)
+                                .padding(.horizontal, 10)
+                                .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+                                .background(.white.opacity(0.44),
+                                            in: RoundedRectangle(cornerRadius: 10))
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 10)
-                            .frame(height: 41)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Show tracks by \(artist.name)")
                         }
-                        .buttonStyle(QuietGlassButtonStyle(
-                            surface: signIn.currentTrack?.id == track.id ? .filled : .subtle
-                        ))
-                        .accessibilityLabel("Play \(track.title) by \(track.artistName)")
                     }
-                }
-            } else {
-                switch signIn.searchStatus {
-                case .ready:
-                    statusLine(searchScope == .artists && signIn.selectedArtist == nil
-                        ? "No artists found." : "No tracks found.",
-                        symbol: "magnifyingglass")
-                case .failed(let message):
-                    statusLine(message, symbol: "info.circle")
-                case .idle:
-                    statusLine("Enter a song or artist.", symbol: "magnifyingglass")
-                case .searching:
-                    statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                    if shouldShowTracks && !signIn.searchResults.isEmpty {
+                        resultHeading(signIn.selectedArtist == nil ? "SONGS" : "TRACKS")
+                        ForEach(signIn.searchResults) { track in
+                            Button {
+                                signIn.play(track)
+                                showingResults = false
+                            } label: {
+                                HStack(spacing: 9) {
+                                    Image(systemName: signIn.currentTrack?.id == track.id
+                                          ? "waveform" : "music.note")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(accent)
+                                        .frame(width: 22)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(track.title)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .lineLimit(1)
+                                        Text(track.artistName)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer(minLength: 3)
+                                    Text(formattedMilliseconds(track.durationMilliseconds))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .monospacedDigit()
+                                        .foregroundStyle(secondary)
+                                }
+                                .padding(.horizontal, 10)
+                                .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+                                .background(.white.opacity(0.44),
+                                            in: RoundedRectangle(cornerRadius: 10))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Play \(track.title) by \(track.artistName)")
+                        }
+                    }
                 }
             }
-
-            Spacer(minLength: 0)
-            if pageCount > 1 {
-                HStack(spacing: 12) {
-                    Button {
-                        resultsPage = max(0, resultsPage - 1)
-                    } label: {
-                        Label("Previous", systemImage: "chevron.left")
-                            .font(.system(size: 10))
-                            .padding(5)
-                    }
-                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
-                    .disabled(resultsPage == 0)
-                    Spacer()
-                    Text("\(resultsPage + 1) / \(pageCount)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(secondary)
-                    Spacer()
-                    Button {
-                        resultsPage = min(pageCount - 1, resultsPage + 1)
-                    } label: {
-                        Label("Next", systemImage: "chevron.right")
-                            .font(.system(size: 10))
-                            .padding(5)
-                    }
-                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
-                    .disabled(resultsPage >= pageCount - 1)
-                }
-                .frame(height: 23)
-            }
+            .padding(.vertical, 3)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(height: 225, alignment: .topLeading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
+        .scrollIndicators(.visible)
+        .frame(height: 164)
+        .accessibilityLabel("Search results")
     }
 
-    private var resultCount: Int {
-        if searchScope == .artists && signIn.selectedArtist == nil {
-            return signIn.artistResults.count
-        }
-        return signIn.searchResults.count
+    private func resultHeading(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 9, weight: .semibold))
+            .tracking(1.2)
+            .foregroundStyle(secondary)
+            .padding(.top, 5)
     }
 
-    private var resultPageSize: Int { signIn.selectedArtist == nil ? 4 : 3 }
-
-    private var pageCount: Int {
-        max(1, (resultCount + resultPageSize - 1) / resultPageSize)
+    private var shouldShowArtists: Bool {
+        signIn.selectedArtist == nil && searchScope != .songs
     }
 
-    private var visibleArtists: [MusicSearchArtist] {
-        Array(signIn.artistResults.dropFirst(resultsPage * resultPageSize).prefix(resultPageSize))
+    private var shouldShowTracks: Bool {
+        signIn.selectedArtist != nil || searchScope != .artists
     }
 
-    private var visibleTracks: [MusicSearchTrack] {
-        Array(signIn.searchResults.dropFirst(resultsPage * resultPageSize).prefix(resultPageSize))
+    private var displayedCount: Int {
+        (shouldShowArtists ? signIn.artistResults.count : 0)
+            + (shouldShowTracks ? signIn.searchResults.count : 0)
     }
 
     private var statusPhase: Int {
@@ -665,12 +633,16 @@ struct PlayerPreview: View {
 
     private func performSearch() {
         searchDebounceTask?.cancel()
-        resultsPage = 0
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            showingResults = false
+            signIn.resetSearch()
+            return
+        }
         showingResults = true
-        if searchScope == .artists {
-            signIn.searchArtists(query)
-        } else {
-            signIn.searchTracks(query)
+        switch searchScope {
+        case .all: signIn.searchAll(query)
+        case .songs: signIn.searchTracks(query)
+        case .artists: signIn.searchArtists(query)
         }
     }
 
@@ -785,27 +757,32 @@ struct PlayerPreview: View {
         }
     }
 
+    /// Opaque warm base fills the native window corners, avoiding dark
+    /// system-appearance wedges outside a custom rounded background.
     @ViewBuilder
     private var warmGlass: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-        ZStack {
-            if reduceTransparency {
-                shape.fill(Color(red: 0.965, green: 0.939, blue: 0.901))
-            } else {
-                shape.fill(.regularMaterial)
+        Rectangle()
+            .fill(Color(red: 0.965, green: 0.939, blue: 0.901))
+            .overlay {
+                if !reduceTransparency {
+                    Rectangle().fill(.regularMaterial)
+                }
             }
-            shape.fill(LinearGradient(
-                colors: [
-                    Color(red: 1, green: 0.972, blue: 0.931).opacity(0.72),
-                    Color(red: 0.939, green: 0.890, blue: 0.839).opacity(0.43),
-                    Color(red: 0.990, green: 0.961, blue: 0.919).opacity(0.54)
-                ],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            ))
-            shape.strokeBorder(.white.opacity(0.75), lineWidth: 1)
-        }
-        .clipShape(shape)
-        .shadow(color: accent.opacity(0.10), radius: 23, x: 0, y: 10)
+            .overlay {
+                LinearGradient(
+                    colors: [
+                        Color(red: 1, green: 0.972, blue: 0.931).opacity(0.72),
+                        Color(red: 0.939, green: 0.890, blue: 0.839).opacity(0.43),
+                        Color(red: 0.990, green: 0.961, blue: 0.919).opacity(0.54)
+                    ],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(.white.opacity(0.75), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
     }
 
     private func startMotion() {
@@ -858,8 +835,9 @@ private struct QuietGlassButtonStyle: ButtonStyle {
                     )
             }
             .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            // Only press-feedback changes geometry; hover must not move hit targets.
             .scaleEffect(reduceMotion || !isEnabled ? 1 :
-                (configuration.isPressed ? 0.955 : (hovered ? 1.045 : 1)))
+                (configuration.isPressed ? 0.98 : 1))
             .opacity(isEnabled ? (configuration.isPressed ? 0.82 : 1) : 0.42)
             .shadow(
                 color: Color(red: 0.62, green: 0.45, blue: 0.29)
