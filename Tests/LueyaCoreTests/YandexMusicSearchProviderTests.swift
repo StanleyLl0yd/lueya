@@ -52,6 +52,52 @@ final class YandexMusicSearchProviderTests: XCTestCase {
         XCTAssertEqual(results[0].artistName, "Кино")
     }
 
+    func testArtistSearchAndSelectedArtistTracks() async throws {
+        let provider = YandexMusicSearchProvider(transport: ArtistLookupTransport())
+        let artists = try await provider.artists(matching: "кино", accessToken: "my-test-token")
+        XCTAssertEqual(artists, [
+            MusicSearchArtist(id: "77", name: "Кино"),
+            MusicSearchArtist(id: "88", name: "КИНО tribute")
+        ])
+        let tracks = try await provider.tracks(
+            forArtistID: artists[0].id, accessToken: "my-test-token"
+        )
+        XCTAssertEqual(tracks.count, 2)
+        XCTAssertEqual(tracks[0].title, "Звезда по имени Солнце")
+        XCTAssertEqual(tracks[0].artistName, "Кино")
+        XCTAssertEqual(tracks[0].coverURL?.host, "avatars.yandex.net")
+        XCTAssertEqual(tracks[1].title, "Пачка сигарет")
+    }
+
+    func testRejectsUntrustedArtworkHostsAndMalformedIDs() async {
+        let good = "avatars.yandex.net/get-music-content/123/abcdef/%%"
+        XCTAssertEqual(
+            MusicArtworkURL.validatedURL(from: good)?.absoluteString,
+            "https://avatars.yandex.net/get-music-content/123/abcdef/200x200"
+        )
+        for invalid in [
+            "https://avatars.yandex.net/get-music-content/123/%%",
+            "avatars.yandex.net.evil.test/get-music-content/123/%%",
+            "avatars.yandex.net/other/%%",
+            "avatars.yandex.net/get-music-content/123/%%?redirect=evil",
+            "avatars.yandex.net/get-music-content/123/%%#frag",
+            "evil.test/get-music-content/123/%%"
+        ] {
+            XCTAssertNil(MusicArtworkURL.validatedURL(from: invalid))
+        }
+        let provider = YandexMusicSearchProvider(transport: ArtistLookupTransport())
+        for id in ["", "0", "-1", "foo", "12/other", "99999999999999999999"] {
+            do {
+                _ = try await provider.tracks(forArtistID: id, accessToken: "my-test-token")
+                XCTFail("Invalid artist id was accepted")
+            } catch let error as MusicSearchError {
+                XCTAssertEqual(error, .invalidQuery)
+            } catch {
+                XCTFail("Unexpected \(error)")
+            }
+        }
+    }
+
     func testRejectsInvalidQueriesBeforeNetwork() async {
         for query in ["", " \n ", String(repeating: "a", count: 121), "bad\u{0000}query"] {
             await expect(
@@ -127,6 +173,45 @@ final class YandexMusicSearchProviderTests: XCTestCase {
             XCTAssertEqual(error, expected)
         } catch {
             XCTFail("Unexpected error type: \(type(of: error))")
+        }
+    }
+
+    private struct ArtistLookupTransport: MusicHTTPTransport {
+        func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+            guard let url = request.url else { throw MusicSearchError.invalidResponse }
+            XCTAssertEqual(url.scheme, "https")
+            XCTAssertEqual(url.host, "api.music.yandex.net")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "OAuth my-test-token")
+
+            let body: String
+            if url.path == "/search" {
+                let type = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first(where: { $0.name == "type" })?.value
+                XCTAssertEqual(type, "artist")
+                body = """
+                {"result":{"artists":{"results":[
+                    {"id":77,"name":"Кино","available":true},
+                    {"id":88,"name":"КИНО tribute"},
+                    {"id":77,"name":"Duplicate"}
+                ]}}}
+                """
+            } else {
+                XCTAssertEqual(url.path, "/artists/77/tracks")
+                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+                XCTAssertEqual(items?.first(where: { $0.name == "page" })?.value, "0")
+                XCTAssertEqual(items?.first(where: { $0.name == "page-size" })?.value, "20")
+                body = """
+                {"result":{"tracks":[
+                    {"id":701,"title":"Звезда по имени Солнце",
+                     "artists":[{"name":"Кино"}],"coverUri":"avatars.yandex.net/get-music-content/12/a/%%"},
+                    {"id":702,"title":"Пачка сигарет","artists":[{"name":"Кино"}]}
+                ],"pager":{"total":2}}}
+                """
+            }
+            return (
+                Data(body.utf8),
+                HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            )
         }
     }
 

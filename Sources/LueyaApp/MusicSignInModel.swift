@@ -41,6 +41,8 @@ final class MusicSignInModel {
     private(set) var sourceProbe: SourceProbeStatus = .idle
     private(set) var searchStatus: SearchStatus = .idle
     private(set) var searchResults: [MusicSearchTrack] = []
+    private(set) var artistResults: [MusicSearchArtist] = []
+    private(set) var selectedArtist: MusicSearchArtist?
     private(set) var currentTrack: MusicSearchTrack?
 
     var canSkipNext: Bool {
@@ -166,6 +168,8 @@ final class MusicSignInModel {
     func resetSearch() {
         cancelSearch()
         searchResults = []
+        artistResults = []
+        selectedArtist = nil
         searchStatus = .idle
     }
 
@@ -180,6 +184,8 @@ final class MusicSignInModel {
         }
 
         searchResults = []
+        artistResults = []
+        selectedArtist = nil
         searchStatus = .searching
         let generation = searchGeneration
         searchTask = Task {
@@ -199,6 +205,75 @@ final class MusicSignInModel {
                 searchStatus = .failed(Self.searchMessage(for: error))
             }
         }
+    }
+
+    func searchArtists(_ text: String) {
+        guard case .signedIn = status else { return }
+        resetSearch()
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        searchStatus = .searching
+        let generation = searchGeneration
+        searchTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                let artists = try await searchProvider.artists(
+                    matching: query, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                artistResults = artists
+                searchStatus = .ready
+            } catch is CancellationError {
+                // Superseded queries never overwrite the results.
+            } catch {
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                searchStatus = .failed(Self.searchMessage(for: error))
+            }
+        }
+    }
+
+    func showTracks(for artist: MusicSearchArtist) {
+        guard case .signedIn = status else { return }
+        cancelSearch()
+        searchResults = []
+        selectedArtist = artist
+        searchStatus = .searching
+        let generation = searchGeneration
+        searchTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                let tracks = try await searchProvider.tracks(
+                    forArtistID: artist.id, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      selectedArtist?.id == artist.id,
+                      case .signedIn = status else { return }
+                searchResults = tracks
+                searchStatus = .ready
+            } catch is CancellationError {
+                // A newer selection owns the visible state.
+            } catch {
+                guard generation == searchGeneration,
+                      selectedArtist?.id == artist.id,
+                      case .signedIn = status else { return }
+                searchStatus = .failed(Self.searchMessage(for: error))
+            }
+        }
+    }
+
+    func returnToArtistResults() {
+        cancelSearch()
+        selectedArtist = nil
+        searchResults = []
+        searchStatus = .ready
     }
 
     func play(_ selected: MusicSearchTrack) {
@@ -265,6 +340,8 @@ final class MusicSignInModel {
     private func clearCatalog() {
         cancelSearch()
         searchResults = []
+        artistResults = []
+        selectedArtist = nil
         searchStatus = .idle
         playQueue = []
         currentQueueIndex = nil
@@ -446,7 +523,12 @@ final class MusicSignInModel {
         case .metadataUnavailable:
             return "The provider marks this track unavailable in its metadata."
         case .forbidden(let stage):
-            return "HTTP 403: \(stage.label) request denied. This does not prove a region block."
+            switch stage {
+            case .trackMetadata:
+                return "This recording is unavailable from the music catalog."
+            case .rawAudioSource:
+                return "This recording's audio is not available through the permitted raw stream. Try another recording."
+            }
         case .unavailable:
             return "No compatible raw audio source was returned for this track."
         case .unsupportedEncryptedTransport:
@@ -495,6 +577,6 @@ final class MusicSignInModel {
                 return "macOS denied access to your saved session. Retry and choose Always Allow in Keychain."
             }
         }
-        return "Could not connect. Check your network and try again."
+        return "Could not connect. Retry will keep your saved session; there is no need to sign in again."
     }
 }

@@ -1,9 +1,15 @@
 import AppKit
+import ImageIO
 import LueyaCore
 import SwiftUI
 
 /// The compact menu-bar player. No diagnostic track IDs or external-site buttons.
 struct PlayerPreview: View {
+    private enum SearchScope: String, CaseIterable {
+        case songs = "Songs"
+        case artists = "Artists"
+    }
+
     let signIn: MusicSignInModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -11,6 +17,9 @@ struct PlayerPreview: View {
 
     @State private var query = ""
     @State private var showingResults = false
+    @State private var searchScope: SearchScope = .songs
+    @State private var resultsPage = 0
+    @State private var coverImage: NSImage?
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var draftSeekSeconds: Double?
     @State private var contentRevealed = false
@@ -70,6 +79,7 @@ struct PlayerPreview: View {
         .tint(accent)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.26), value: statusPhase)
         .task { await signIn.restoreIfNeeded() }
+        .task(id: signIn.currentTrack?.id) { await loadArtwork() }
         .onAppear(perform: startMotion)
         .onDisappear {
             searchDebounceTask?.cancel()
@@ -78,6 +88,7 @@ struct PlayerPreview: View {
         .onChange(of: statusPhase) { _, phase in
             if phase != 3 {
                 showingResults = false
+                resultsPage = 0
                 query = ""
             }
         }
@@ -235,8 +246,21 @@ struct PlayerPreview: View {
     private var playerSection: some View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 15) {
-                artwork(isPlaying: signIn.playback.status == .playing)
-                    .frame(width: 78, height: 78)
+                if let coverImage {
+                    Image(nsImage: coverImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 78, height: 78)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .strokeBorder(.white.opacity(0.78), lineWidth: 1)
+                        }
+                        .accessibilityLabel("Album artwork")
+                } else {
+                    artwork(isPlaying: signIn.playback.status == .playing)
+                        .frame(width: 78, height: 78)
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(signIn.currentTrack?.title ?? "Nothing playing")
@@ -371,6 +395,30 @@ struct PlayerPreview: View {
                 }
             }
 
+            if showingResults {
+                HStack(spacing: 7) {
+                    ForEach(SearchScope.allCases, id: \.self) { scope in
+                        Button(scope.rawValue) {
+                            guard searchScope != scope else { return }
+                            searchScope = scope
+                            resultsPage = 0
+                            signIn.resetSearch()
+                            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                performSearch()
+                            }
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .frame(height: 26)
+                        .buttonStyle(QuietGlassButtonStyle(
+                            surface: searchScope == scope ? .filled : .text
+                        ))
+                    }
+                    Spacer()
+                }
+                .accessibilityLabel("Search category")
+            }
+
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 12))
@@ -382,13 +430,14 @@ struct PlayerPreview: View {
                     .onChange(of: query) { _, updated in
                         searchDebounceTask?.cancel()
                         signIn.resetSearch()
+                        resultsPage = 0
                         let term = updated.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !term.isEmpty else { return }
                         showingResults = true
                         searchDebounceTask = Task { @MainActor in
                             try? await Task.sleep(for: .milliseconds(450))
                             guard !Task.isCancelled else { return }
-                            signIn.searchTracks(term)
+                            performSearch()
                         }
                     }
                     .accessibilityLabel("Search music")
@@ -417,71 +466,163 @@ struct PlayerPreview: View {
         }
     }
 
-    /// The panel has a stable result viewport even while async search updates.
-    /// The player is replaced rather than pushed behind the menu-bar footer.
+    /// Fixed rows with explicit pagination avoid ScrollView capturing click
+    /// and hover events inside the menu-bar panel.
     private var searchResultsPane: some View {
-        Group {
-            if !signIn.searchResults.isEmpty {
-                ScrollView(.vertical) {
-                    LazyVStack(spacing: 5) {
-                        ForEach(signIn.searchResults) { track in
-                            Button {
-                                signIn.play(track)
-                                showingResults = false
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: signIn.currentTrack?.id == track.id
-                                        ? "waveform" : "music.note")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(accent)
-                                        .frame(width: 22)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(track.title)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .lineLimit(1)
-                                        Text(track.artistName)
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(secondary)
-                                            .lineLimit(1)
-                                    }
-                                    Spacer(minLength: 4)
-                                    Text(formattedMilliseconds(track.durationMilliseconds))
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .monospacedDigit()
-                                        .foregroundStyle(secondary)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 43)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(QuietGlassButtonStyle(
-                                surface: signIn.currentTrack?.id == track.id ? .filled : .subtle
-                            ))
-                            .accessibilityLabel("Play \(track.title) by \(track.artistName)")
-                        }
+        VStack(alignment: .leading, spacing: 5) {
+            if let artist = signIn.selectedArtist {
+                HStack {
+                    Button {
+                        resultsPage = 0
+                        signIn.returnToArtistResults()
+                    } label: {
+                        Label("Artists", systemImage: "chevron.left")
+                            .font(.system(size: 10, weight: .medium))
+                            .padding(.horizontal, 7)
+                            .frame(height: 25)
                     }
-                    .padding(.trailing, 5)
-                }
-                .scrollIndicators(.visible)
-                .accessibilityLabel("Search results")
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    switch signIn.searchStatus {
-                    case .ready:
-                        statusLine("No tracks found. Try another search.", symbol: "magnifyingglass")
-                    case .failed(let message):
-                        statusLine(message, symbol: "info.circle")
-                    case .idle:
-                        statusLine("Enter a song or artist.", symbol: "magnifyingglass")
-                    case .searching:
-                        statusLine("Searching the music catalog…", symbol: "magnifyingglass")
-                    }
-                    Spacer(minLength: 0)
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                    Spacer()
+                    Text(artist.name)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
                 }
             }
+
+            if resultCount > 0 {
+                if searchScope == .artists && signIn.selectedArtist == nil {
+                    ForEach(visibleArtists) { artist in
+                        Button {
+                            resultsPage = 0
+                            signIn.showTracks(for: artist)
+                        } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: "person.crop.circle")
+                                    .foregroundStyle(accent)
+                                    .frame(width: 24)
+                                Text(artist.name)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .lineLimit(1)
+                                Spacer(minLength: 2)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(secondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(height: 41)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
+                        .accessibilityLabel("Show tracks by \(artist.name)")
+                    }
+                } else {
+                    ForEach(visibleTracks) { track in
+                        Button {
+                            signIn.play(track)
+                            showingResults = false
+                        } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: signIn.currentTrack?.id == track.id
+                                    ? "waveform" : "music.note")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(accent)
+                                    .frame(width: 22)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(track.title)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .lineLimit(1)
+                                    Text(track.artistName)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 3)
+                                Text(formattedMilliseconds(track.durationMilliseconds))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .monospacedDigit()
+                                    .foregroundStyle(secondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(height: 41)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(QuietGlassButtonStyle(
+                            surface: signIn.currentTrack?.id == track.id ? .filled : .subtle
+                        ))
+                        .accessibilityLabel("Play \(track.title) by \(track.artistName)")
+                    }
+                }
+            } else {
+                switch signIn.searchStatus {
+                case .ready:
+                    statusLine(searchScope == .artists && signIn.selectedArtist == nil
+                        ? "No artists found." : "No tracks found.",
+                        symbol: "magnifyingglass")
+                case .failed(let message):
+                    statusLine(message, symbol: "info.circle")
+                case .idle:
+                    statusLine("Enter a song or artist.", symbol: "magnifyingglass")
+                case .searching:
+                    statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                }
+            }
+
+            Spacer(minLength: 0)
+            if pageCount > 1 {
+                HStack(spacing: 12) {
+                    Button {
+                        resultsPage = max(0, resultsPage - 1)
+                    } label: {
+                        Label("Previous", systemImage: "chevron.left")
+                            .font(.system(size: 10))
+                            .padding(5)
+                    }
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                    .disabled(resultsPage == 0)
+                    Spacer()
+                    Text("\(resultsPage + 1) / \(pageCount)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(secondary)
+                    Spacer()
+                    Button {
+                        resultsPage = min(pageCount - 1, resultsPage + 1)
+                    } label: {
+                        Label("Next", systemImage: "chevron.right")
+                            .font(.system(size: 10))
+                            .padding(5)
+                    }
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                    .disabled(resultsPage >= pageCount - 1)
+                }
+                .frame(height: 23)
+            }
         }
-        .frame(height: 190, alignment: .topLeading)
+        .frame(height: 225, alignment: .topLeading)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+    }
+
+    private var resultCount: Int {
+        if searchScope == .artists && signIn.selectedArtist == nil {
+            return signIn.artistResults.count
+        }
+        return signIn.searchResults.count
+    }
+
+    private var resultPageSize: Int { signIn.selectedArtist == nil ? 4 : 3 }
+
+    private var pageCount: Int {
+        max(1, (resultCount + resultPageSize - 1) / resultPageSize)
+    }
+
+    private var visibleArtists: [MusicSearchArtist] {
+        Array(signIn.artistResults.dropFirst(resultsPage * resultPageSize).prefix(resultPageSize))
+    }
+
+    private var visibleTracks: [MusicSearchTrack] {
+        Array(signIn.searchResults.dropFirst(resultsPage * resultPageSize).prefix(resultPageSize))
     }
 
     private var statusPhase: Int {
@@ -524,8 +665,56 @@ struct PlayerPreview: View {
 
     private func performSearch() {
         searchDebounceTask?.cancel()
+        resultsPage = 0
         showingResults = true
-        signIn.searchTracks(query)
+        if searchScope == .artists {
+            signIn.searchArtists(query)
+        } else {
+            signIn.searchTracks(query)
+        }
+    }
+
+    /// Public thumbnail only. Ephemeral session, no redirects, cookies or disk cache.
+    private func loadArtwork() async {
+        coverImage = nil
+        guard let url = signIn.currentTrack?.coverURL else { return }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        let session = URLSession(
+            configuration: configuration, delegate: NoArtworkRedirects(), delegateQueue: nil
+        )
+        defer { session.invalidateAndCancel() }
+
+        var request = URLRequest(
+            url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8
+        )
+        request.httpMethod = "GET"
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard !Task.isCancelled,
+                  let response = response as? HTTPURLResponse,
+                  response.url == url, response.statusCode == 200,
+                  ["image/jpeg", "image/png", "image/webp"].contains(response.mimeType ?? ""),
+                  !data.isEmpty, data.count <= 400_000,
+                  let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+                    as? [CFString: Any],
+                  let width = properties[kCGImagePropertyPixelWidth] as? Int,
+                  let height = properties[kCGImagePropertyPixelHeight] as? Int,
+                  width > 0, height > 0, width <= 1600, height <= 1600,
+                  let image = CGImageSourceCreateThumbnailAtIndex(
+                    source, 0, [
+                        kCGImageSourceCreateThumbnailFromImageAlways: true,
+                        kCGImageSourceThumbnailMaxPixelSize: 220
+                    ] as CFDictionary
+                  ) else { return }
+            coverImage = NSImage(cgImage: image, size: NSSize(width: 80, height: 80))
+        } catch {
+            // Artwork is optional and never prevents track playback.
+        }
     }
 
     private func artwork(isPlaying: Bool) -> some View {
@@ -699,5 +888,16 @@ private struct QuietGlassButtonStyle: ButtonStyle {
             Color(red: 0.62, green: 0.45, blue: 0.29)
                 .opacity(hovered && isEnabled ? 0.15 : 0.01)
         }
+    }
+}
+
+/// Never follow untrusted artwork URL redirects.
+private final class NoArtworkRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        nil
     }
 }
