@@ -56,8 +56,9 @@ versioned ZIP, logs or published GitHub Release.
 - The `publish-release` job in `swift.yml` imports the same pinned
   identity after either a version-specific owner-feedback guarded merge,
   or an optional owner-initiated `workflow_dispatch` with matching
-  `release_version` and `release_confirmation`. Release publishing is
-  never triggered on pushes or PR merges.
+  `release_version` and `release_confirmation`. The guarded exact
+  merge marker can trigger a **single** authorized main-branch release push;
+  arbitrary pushes or PR jobs cannot publish.
 - Release ZIPs must contain **certificate-signed**, verified arm64 applications;
   unsigned/ad-hoc CI artifacts are not promoted to releases.
 - Environment access is restricted to **protected branches**, with no secrets
@@ -70,12 +71,20 @@ versioned ZIP, logs or published GitHub Release.
 
 ## Updating an installed app
 
-Keep the same `CFBundleIdentifier` (`com.stanleylloyd.lueya`), Keychain
-service (`com.stanleylloyd.lueya.yandex-music`), and Keychain account
-(`oauth-session`) forever. Do not delete login Keychain items or sign out
-before installing an updated test build. A first-time ad-hoc → self-signed
-transition may require a **single** Keychain ACL authorization prompt.
-Check that the subsequent independently signed build does not need it.
+Keep the same `CFBundleIdentifier` (`com.stanleylloyd.lueya`) and Keychain
+service (`com.stanleylloyd.lueya.yandex-music`). As of v0.5.2 the account
+name is `oauth-session-v2` to create a new item under the stable certificate
+rather than reuse the old ad-hoc app's access-control list. On its first load,
+lueya reads the historical `oauth-session`, verifies a saved replacement
+and attempts non-interactive cleanup. If migration fails, the original is
+retained. Explicit Sign out clears both entries. Do not manually delete
+Keychain items or sign out before installing.
+
+macOS may still require a **one-time** grant to read the historical entry.
+If prompted for the correct lueya app, use `Always Allow` after checking
+the app identity. A repeated prompt on v0.5.2 must still be reported; CI
+cannot reproduce the owner's existing Keychain ACL. Never select the
+unsafe `Allow all applications` setting.
 
 Never upload the account's OAuth token; it remains on the owner's Mac.
 Token expiration/revocation is a separate OAuth issue and cannot be fixed by
