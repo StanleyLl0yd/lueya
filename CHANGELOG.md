@@ -3,6 +3,17 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.4] — unified scrolling catalog and stable search interaction
+
+- Search presents Artists and Songs together by default, with optional category filters.
+- Restore scrolling in the results, replacing the four-row pagination.
+- Keep the native menu-bar window's signed-in dimensions fixed so changing
+  search content does not resize its hit-testing area.
+- Make result rows full-width plain buttons, and stop hover scaling of controls.
+- Fill the window background to its edges instead of showing dark native corners.
+- Leave online playback, OAuth, Keychain account/service and signing identity unchanged.
+- CI checks cannot prove real mouse interactions; owner-device acceptance is required.
+
 ## [0.5.3] — clear artist search, reliable row clicks and optional artwork
 
 - Add explicit Songs/Artists catalog modes; selecting an artist lists only
