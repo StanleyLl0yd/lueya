@@ -42,10 +42,10 @@
   on an already delivered test release authorizes the complete next cycle
   (fixes, CI, signing, release) without a separate release-approval question.
   The feedback can be negative; it is not milestone acceptance.
-- Current delivered test build: v0.5.3. Owner reports persistent pointer/click
-  failure after ScrollView was removed, prefers scrolling, sees dark window
-  corners and wants unified artist/song results like the official catalog.
-  Next candidate: v0.5.4. Freeze immediately after delivery until feedback.
+- Current delivered test build: v0.5.4. Owner requests album browsing,
+  separate artist discographies, linked album/artist metadata in the player
+  and full album track lists rather than only popular songs.
+  Next candidate: v0.5.5. Freeze immediately after delivery until feedback.
   Never claim on-device Keychain continuity based on CI alone.
 - Signed publish uses only the already provisioned protected environment
   and a version-specific guarded merge marker, never an arbitrary push.
