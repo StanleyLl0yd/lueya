@@ -3,6 +3,22 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.3] — clear artist search, reliable row clicks and optional artwork
+
+- Add explicit Songs/Artists catalog modes; selecting an artist lists only
+  their tracks through a bounded, authenticated artist-tracks endpoint.
+- Replace embedded scroll handling with four clickable result rows per page,
+  navigation controls and a return-to-artists action.
+- Fetch and show small public album artwork in an ephemeral, redirect-free,
+  size-limited session; reject artwork links outside the known cover CDN.
+- Report track-specific HTTP 403 raw-source denial without suggesting an
+  unrelated region or Keychain authorization problem.
+- Preserve the v0.5.2 Keychain item/service and stable signing identity.
+  First-run legacy item permission remains controlled by macOS; selecting
+  "Always Allow" can remember authorization for the signed publisher.
+- Add synthetic artist, pagination-source and CDN-policy tests. Mac-level
+  interactions and legacy ACL state require the owner's next test.
+
 ## [0.5.2] — selectable search and resilient saved sessions
 
 - Place search results in a dedicated, fixed-height scrolling view inside

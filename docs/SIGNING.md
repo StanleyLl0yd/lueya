@@ -69,6 +69,18 @@ versioned ZIP, logs or published GitHub Release.
 - macOS Gatekeeper may still block unnotarized self-signed binaries: this
   certificate is for owner testing, not trusted general distribution.
 
+## Keychain consent during legacy migration
+
+The signing identity and Keychain service/account remain unchanged from
+v0.5.2 onward. Updating from historical ad-hoc builds may legitimately
+request permission to read the older `oauth-session` item. If macOS offers
+**Always Allow** (Russian: «Разрешать всегда») for the expected, verified
+lueya app, it can retain that authorization; choosing **Allow** only grants
+the current access. Never type the Keychain password into lueya's own UI,
+remove Keychain entries manually or turn off Keychain protection.
+The owner-device ACL cannot be inspected from CI and zero future prompts
+cannot be guaranteed by a self-signed certificate.
+
 ## Updating an installed app
 
 Keep the same `CFBundleIdentifier` (`com.stanleylloyd.lueya`) and Keychain

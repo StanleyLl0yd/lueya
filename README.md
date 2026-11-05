@@ -15,13 +15,14 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Native online AAC/MP3 playback with Play/Pause, Stop, Seek, Volume and limited signed-source renewal.
 - Authenticated song/artist search, selection and a temporary in-memory next/previous queue.
 
-**v0.5.2 responds to the owner's v0.5.1 testing.** Search results now
-have their own compact scrolling panel with clear title, artist and duration;
-click the desired song to play it. Saved-session recovery and Keychain entry
-migration have been improved to reduce repeated account logins and prompts.
-The first migration may still require macOS Keychain consent, and real
-on-device continuity remains to be verified. No offline mode. The unofficial
-integration remains subject to provider restrictions.
+**v0.5.3 responds to the owner's v0.5.2 testing.** Search separates songs
+and artists: choose an artist to browse their own tracks. A compact
+four-row paged selector replaces the problematic scroll surface; optional
+album art appears on the player. The session keeps the same stable
+certificate and Keychain entry. An old Keychain item may ask for macOS
+permission once; "Always Allow" can retain that decision. Some tracks may
+still be denied by the provider's raw-audio endpoint (HTTP 403); these
+are not bypassed. Live service and UI acceptance remain to be verified.
 
 ## Download
 
@@ -29,13 +30,13 @@ integration remains subject to provider restrictions.
 That feedback authorizes the next repair-and-release cycle without a separate
 version-specific approval; feedback is not acceptance.
 
-**[Download lueya 0.5.2 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.2/lueya-0.5.2-macos-arm64.zip)**
+**[Download lueya 0.5.3 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.3/lueya-0.5.3-macos-arm64.zip)**
 
-[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.2/SHA256SUMS.txt) ·
+[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.3/SHA256SUMS.txt) ·
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27
-supported). The v0.5.2 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
+supported). The v0.5.3 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
 macOS may block launch; after verifying the checksum, use
 System Settings → Privacy & Security → Open Anyway *if offered*.
 Do not disable Gatekeeper.

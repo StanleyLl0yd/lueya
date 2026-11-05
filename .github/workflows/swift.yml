@@ -114,13 +114,13 @@ jobs:
 
   publish-release:
     name: Owner-approved, certificate-signed GitHub Release
-    # Owner feedback on v0.5.1 authorizes one signed v0.5.2 trial; no extra approval.
+    # Owner feedback on v0.5.2 authorizes one signed v0.5.3 trial; no extra approval.
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'push' &&
         startsWith(github.event.head_commit.message,
-                   'test(lueya): owner-feedback v0.5.2 signed trial [one-shot]')))
+                   'test(lueya): owner-feedback v0.5.3 signed trial [one-shot]')))
     needs: native
     runs-on: xcode-27
     timeout-minutes: 30
@@ -139,9 +139,9 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_REF" == "refs/heads/main" ]] || exit 1
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            # Feedback on v0.5.0 authorizes one guarded version-specific release.
+            # Feedback on v0.5.2 authorizes one guarded version-specific release.
             # No unrelated push may publish, and the next cycle awaits feedback.
-            [[ "$APPROVED_COMMIT_MESSAGE" == "test(lueya): owner-feedback v0.5.2 signed trial [one-shot]"* ]] || exit 1
+            [[ "$APPROVED_COMMIT_MESSAGE" == "test(lueya): owner-feedback v0.5.3 signed trial [one-shot]"* ]] || exit 1
             [[ -z "$REQUESTED_VERSION" && -z "$RELEASE_CONFIRMATION" ]] || exit 1
           else
             [[ "$RELEASE_ACTOR" == "StanleyLl0yd" ]] || {
@@ -166,7 +166,7 @@ jobs:
           set -euo pipefail
           version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            test "$version" = "0.5.2"
+            test "$version" = "0.5.3"
           else
             test "$version" = "$REQUESTED_VERSION"
           fi

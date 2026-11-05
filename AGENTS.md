@@ -42,9 +42,10 @@
   on an already delivered test release authorizes the complete next cycle
   (fixes, CI, signing, release) without a separate release-approval question.
   The feedback can be negative; it is not milestone acceptance.
-- Current delivered test build: v0.5.1. Owner reported clipped/unselectable
-  search results, recurring Keychain prompts and repeat account sign-in.
-  Next candidate: v0.5.2, then freeze until feedback on that exact version.
+- Current delivered test build: v0.5.2. Owner reported intermittent
+  Keychain consent/retry, wrong-category search for "Кино", ScrollView
+  intercepting clicks, individual 403 raw sources, and absent cover art.
+  Next candidate: v0.5.3. Freeze immediately after delivery until feedback.
   Never claim on-device Keychain continuity based on CI alone.
 - Signed publish uses only the already provisioned protected environment
   and a version-specific guarded merge marker, never an arbitrary push.
