@@ -3,6 +3,19 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.5] — artist discographies and linked albums
+
+- Add album matches to the unified catalog search and an Albums filter.
+- Show artist discographies separately from the top 20 popular tracks, with
+  incremental read-only album pages.
+- Open album track lists in disc order; retain parent navigation and playback queue.
+- Make artist and album metadata in the player open corresponding catalog views.
+- Read artist/album identifiers from catalog metadata, never guessed from a title.
+- Keep Keychain and playback transports unchanged, with bounded HTTPS API requests
+  and defensive metadata parsing.
+- Synthetic album endpoint/volume/validation regression tests; owner-device
+  verification is still needed.
+
 ## [0.5.4] — unified scrolling catalog and stable search interaction
 
 - Search presents Artists and Songs together by default, with optional category filters.

@@ -4,7 +4,7 @@
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
 [here](M0-API-FEASIBILITY.md). The historical OAuth experiment is documented [here](AUTH-RESEARCH-RELEASE-NOTES.md).
-The current feedback-driven signed test candidate is [v0.5.4](releases/v0.5.4.md).
+The current feedback-driven signed test candidate is [v0.5.5](releases/v0.5.5.md).
 Use the current release for M0 audio tests; the old embed tests below are
 preserved as historical evidence only.
 
@@ -76,7 +76,7 @@ streaming engine, My Wave, search or media-key support. Current
 functionality is documented in the v0.4.0 release notes above.
 The old embed probe must not be used as a test for full-track playback.
 
-## Player interaction acceptance matrix (v0.5.4)
+## Player interaction acceptance matrix (v0.5.5)
 
 This is the developer's verification scope, **not an end-user button-by-button checklist**.
 The owner is expected to assess the overall build; the developer owns regressions.
@@ -86,7 +86,7 @@ Source inspection does not count as a completed on-device interaction test.
 | --- | --- |
 | Sign in | Hover, pressed, code request, Copy, Open sign-in page, Cancel, retry on failure |
 | Sign out | Hover, pressed, visible transition, player cancellation, Keychain removal and signed-out state |
-| Search | All/Songs/Artists scope, scroll through multiple results, select actual artist and track, click rows at every scroll offset and buttons with cursor over results, empty input, errors, rapid queries |
+| Search | All/Songs/Artists/Albums scope, scroll artist discography, load more albums, open album track list and return, click playing track artist/album links, keep mouse/keyboard navigation responsive, empty input, errors, rapid queries |
 | Track rows | Hover, pressed, selecting during playback, rapid selection, long text truncation, keyboard focus and VoiceOver |
 | Play/Pause | Hover, pressed, icon change, buffering, play/resume/stop/replay, stale-source renewal |
 | Previous/Next | Disabled boundary, previous after 3 seconds, prev/next during playback, automatic queue advancement |

@@ -176,6 +176,135 @@ final class YandexMusicSearchProviderTests: XCTestCase {
         }
     }
 
+    func testAlbumSearchAndArtistDiscographyWithPaging() async throws {
+        let provider = YandexMusicSearchProvider(transport: AlbumLookupTransport())
+        let results = try await provider.albums(
+            matching: "Yodelice", accessToken: "my-test-token"
+        )
+        XCTAssertEqual(results.map(\.title), ["Tree of Life", "Cardioid"])
+        XCTAssertEqual(results.first?.artistName, "Yodelice")
+        XCTAssertEqual(results.first?.coverURL?.host, "avatars.yandex.net")
+        XCTAssertEqual(results.first?.year, 2019)
+
+        let first = try await provider.albums(
+            forArtistID: "77", page: 0, accessToken: "my-test-token"
+        )
+        XCTAssertEqual(first.albums.count, 2)
+        XCTAssertTrue(first.hasMore)
+        let second = try await provider.albums(
+            forArtistID: "77", page: 1, accessToken: "my-test-token"
+        )
+        XCTAssertEqual(second.albums.map(\.id), ["43"])
+        XCTAssertFalse(second.hasMore)
+    }
+
+    func testAlbumTrackVolumesPreserveOrderedTrackMetadata() async throws {
+        let provider = YandexMusicSearchProvider(transport: AlbumLookupTransport())
+        let album = MusicSearchAlbum(
+            id: "41", title: "Tree of Life", artists: ["Yodelice"],
+            year: 2019, coverURI: "avatars.yandex.net/get-music-content/12/a/%%"
+        )
+        let songs = try await provider.tracks(
+            forAlbum: album, accessToken: "my-test-token"
+        )
+        XCTAssertEqual(songs.map(\.title), ["Muse in Motion", "The Answer", "Second disc"])
+        XCTAssertEqual(songs[0].album?.id, "41")
+        XCTAssertEqual(songs[0].album?.title, "Tree of Life")
+        XCTAssertEqual(songs[0].artist, MusicSearchArtist(id: "77", name: "Yodelice"))
+        XCTAssertEqual(songs[0].coverURL?.host, "avatars.yandex.net")
+        XCTAssertEqual(songs[1].album?.title, "Tree of Life")
+        XCTAssertEqual(songs[2].artistName, "Yodelice")
+    }
+
+    func testRejectsMalformedAlbumIDsAndInvalidPageBeforeNetwork() async {
+        let provider = YandexMusicSearchProvider(transport: AlbumLookupTransport())
+        for badID in ["", "-1", "0", "../123", "4%2f5", "abc"] {
+            let album = MusicSearchAlbum(
+                id: badID, title: "Test", artists: [], year: nil, coverURI: nil
+            )
+            do {
+                _ = try await provider.tracks(forAlbum: album, accessToken: "my-test-token")
+                XCTFail("Accepted album ID \(badID)")
+            } catch let error as MusicSearchError {
+                XCTAssertEqual(error, .invalidQuery)
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+        for badPage in [-1, 101] {
+            do {
+                _ = try await provider.albums(
+                    forArtistID: "77", page: badPage, accessToken: "my-test-token"
+                )
+                XCTFail("Accepted invalid page \(badPage)")
+            } catch let error as MusicSearchError {
+                XCTAssertEqual(error, .invalidQuery)
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    private struct AlbumLookupTransport: MusicHTTPTransport {
+        func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+            guard let url = request.url else { throw MusicSearchError.invalidResponse }
+            XCTAssertEqual(url.scheme, "https")
+            XCTAssertEqual(url.host, "api.music.yandex.net")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "OAuth my-test-token")
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            let params = components?.queryItems ?? []
+            let body: String
+            switch url.path {
+            case "/search":
+                XCTAssertEqual(params.first(where: { $0.name == "type" })?.value, "album")
+                body = """
+                {"result":{"albums":{"results":[
+                    {"id":41,"title":"Tree of Life","artists":[{"id":77,"name":"Yodelice"}],
+                     "year":2019,"coverUri":"avatars.yandex.net/get-music-content/12/a/%%"},
+                    {"id":42,"title":"Cardioid","artists":[{"name":"Yodelice"}]},
+                    {"id":41,"title":"duplicate","artists":[]}
+                ]}}}
+                """
+            case "/artists/77/direct-albums":
+                XCTAssertEqual(params.first(where: { $0.name == "sort-by" })?.value, "year")
+                XCTAssertEqual(params.first(where: { $0.name == "page-size" })?.value, "20")
+                if params.first(where: { $0.name == "page" })?.value == "0" {
+                    body = """
+                    {"result":{"albums":[
+                        {"id":41,"title":"Tree of Life","artists":[{"name":"Yodelice"}]},
+                        {"id":42,"title":"Cardioid"}
+                    ],"pager":{"total":21}}}
+                    """
+                } else {
+                    XCTAssertEqual(params.first(where: { $0.name == "page" })?.value, "1")
+                    body = """
+                    {"result":{"albums":[
+                        {"id":43,"title":"New Album","artists":[{"name":"Yodelice"}]}
+                    ],"pager":{"total":21}}}
+                    """
+                }
+            case "/albums/41/with-tracks":
+                body = """
+                {"result":{"id":41,"title":"Tree of Life","volumes":[[
+                    {"id":701,"title":"Muse in Motion",
+                     "artists":[{"id":77,"name":"Yodelice"}],"durationMs":150000},
+                    {"id":702,"title":"The Answer","artists":[{"name":"Yodelice"}]}
+                ],[
+                    {"id":703,"title":"Second disc","artists":[]}
+                ]]}}
+                """
+            default:
+                XCTFail("Unexpected endpoint: \(url.path)")
+                throw MusicSearchError.invalidResponse
+            }
+            return (
+                Data(body.utf8),
+                HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            )
+        }
+    }
+
     private struct ArtistLookupTransport: MusicHTTPTransport {
         func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
             guard let url = request.url else { throw MusicSearchError.invalidResponse }

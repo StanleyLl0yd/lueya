@@ -42,7 +42,7 @@ Exit: tested, functional, stable native app foundation.
 
 - [ ] Implement authorized provider integration
 - [ ] Play/pause/next/previous, metadata, artwork, media keys
-- [ ] Validate v0.5.4 unified scrollable artist/song search, mouse/keyboard selection, cover artwork, queue and saved-session continuity on the owner's Mac; liked tracks and My Wave remain future work subject to permission
+- [ ] Validate v0.5.5 artist discography, album catalog navigation, linked player metadata and scrollable result selection, cover artwork, queue and saved-session continuity on the owner's Mac; liked tracks and My Wave remain future work subject to permission
 - [ ] Session expiration, errors, recovery
 
 Exit: reproducible permitted end-to-end music playback.
@@ -73,9 +73,9 @@ audits, PR merges, further releases and planning until the owner provides
 feedback about that exact build. The feedback, including a negative bug
 report, automatically authorizes the next complete repair-and-release
 cycle; **no separate permission to publish is required**. Feedback does
-not mean milestone acceptance. The published v0.5.3 received feedback on click handling,
-scroll restoration, catalog clarity and dark window edges; next signed
-test version is v0.5.4, published only after exact-head CI and package/signing
+not mean milestone acceptance. The published v0.5.4 received feedback requesting album browsing,
+artist discographies and linked player metadata; next signed
+test version is v0.5.5, published only after exact-head CI and package/signing
 verification. The guarded, one-shot merge marker prevents unrelated pushes
 from triggering a release.
 

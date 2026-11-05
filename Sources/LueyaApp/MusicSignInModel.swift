@@ -42,8 +42,16 @@ final class MusicSignInModel {
     private(set) var searchStatus: SearchStatus = .idle
     private(set) var searchResults: [MusicSearchTrack] = []
     private(set) var artistResults: [MusicSearchArtist] = []
+    private(set) var albumResults: [MusicSearchAlbum] = []
+    private(set) var artistAlbums: [MusicSearchAlbum] = []
     private(set) var selectedArtist: MusicSearchArtist?
+    private(set) var selectedAlbum: MusicSearchAlbum?
+    private(set) var hasMoreArtistAlbums = false
+    private(set) var isLoadingMoreArtistAlbums = false
+    private var artistAlbumPage = 0
     private var previousSearchTracks: [MusicSearchTrack] = []
+    private var previousArtistTracks: [MusicSearchTrack] = []
+    private var albumLoadTask: Task<Void, Never>?
     private(set) var currentTrack: MusicSearchTrack?
 
     var canSkipNext: Bool {
@@ -169,9 +177,15 @@ final class MusicSignInModel {
     func resetSearch() {
         cancelSearch()
         previousSearchTracks = []
+        previousArtistTracks = []
         searchResults = []
         artistResults = []
+        albumResults = []
+        artistAlbums = []
         selectedArtist = nil
+        selectedAlbum = nil
+        hasMoreArtistAlbums = false
+        artistAlbumPage = 0
         searchStatus = .idle
     }
 
@@ -186,9 +200,13 @@ final class MusicSignInModel {
         }
 
         previousSearchTracks = []
+        previousArtistTracks = []
         searchResults = []
         artistResults = []
+        albumResults = []
+        artistAlbums = []
         selectedArtist = nil
+        selectedAlbum = nil
         searchStatus = .searching
         let generation = searchGeneration
         searchTask = Task {
@@ -210,8 +228,7 @@ final class MusicSignInModel {
         }
     }
 
-    /// Unified results: show the matching artist first, then song titles.
-    /// Both catalog calls share the existing authenticated session.
+    /// Unified read-only catalog search: artist, album and track matches.
     func searchAll(_ text: String) {
         guard case .signedIn = status else { return }
         resetSearch()
@@ -230,11 +247,17 @@ final class MusicSignInModel {
                 async let matchedTracks = searchProvider.tracks(
                     matching: query, accessToken: token
                 )
-                let (artists, tracks) = try await (matchedArtists, matchedTracks)
+                async let matchedAlbums = searchProvider.albums(
+                    matching: query, accessToken: token
+                )
+                let (artists, tracks, albums) = try await (
+                    matchedArtists, matchedTracks, matchedAlbums
+                )
                 try Task.checkCancellation()
                 guard generation == searchGeneration,
                       case .signedIn = status else { return }
                 artistResults = artists
+                albumResults = albums
                 searchResults = tracks
                 searchStatus = .ready
             } catch is CancellationError {
@@ -277,12 +300,48 @@ final class MusicSignInModel {
         }
     }
 
+    func searchAlbums(_ text: String) {
+        guard case .signedIn = status else { return }
+        resetSearch()
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        searchStatus = .searching
+        let generation = searchGeneration
+        searchTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                let albums = try await searchProvider.albums(
+                    matching: query, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                albumResults = albums
+                searchStatus = .ready
+            } catch is CancellationError {
+            } catch {
+                guard generation == searchGeneration,
+                      case .signedIn = status else { return }
+                searchStatus = .failed(Self.searchMessage(for: error))
+            }
+        }
+    }
+
+    /// Artist page shows a short track selection AND its separate discography.
     func showTracks(for artist: MusicSearchArtist) {
         guard case .signedIn = status else { return }
         cancelSearch()
-        // Keep the unified Songs results for returning from an artist's tracks.
-        previousSearchTracks = searchResults
+        if selectedArtist == nil && selectedAlbum == nil {
+            previousSearchTracks = searchResults
+        }
+        previousArtistTracks = []
         searchResults = []
+        artistAlbums = []
+        hasMoreArtistAlbums = false
+        artistAlbumPage = 0
+        selectedAlbum = nil
         selectedArtist = artist
         searchStatus = .searching
         let generation = searchGeneration
@@ -291,29 +350,126 @@ final class MusicSignInModel {
                 guard let token = try await session.validAccessToken() else {
                     throw MusicSearchError.invalidToken
                 }
-                let tracks = try await searchProvider.tracks(
+                async let popular = searchProvider.tracks(
                     forArtistID: artist.id, accessToken: token
                 )
+                async let discography = searchProvider.albums(
+                    forArtistID: artist.id, accessToken: token
+                )
+                let (tracks, albums) = try await (popular, discography)
                 try Task.checkCancellation()
                 guard generation == searchGeneration,
                       selectedArtist?.id == artist.id,
+                      selectedAlbum == nil,
                       case .signedIn = status else { return }
                 searchResults = tracks
+                artistAlbums = albums.albums
+                hasMoreArtistAlbums = albums.hasMore
                 searchStatus = .ready
             } catch is CancellationError {
-                // A newer selection owns the visible state.
             } catch {
                 guard generation == searchGeneration,
                       selectedArtist?.id == artist.id,
+                      selectedAlbum == nil,
                       case .signedIn = status else { return }
                 searchStatus = .failed(Self.searchMessage(for: error))
             }
         }
     }
 
+    func loadMoreArtistAlbums() {
+        guard case .signedIn = status,
+              let artist = selectedArtist,
+              selectedAlbum == nil,
+              hasMoreArtistAlbums,
+              !isLoadingMoreArtistAlbums,
+              artistAlbumPage < 100 else { return }
+        isLoadingMoreArtistAlbums = true
+        let nextPage = artistAlbumPage + 1
+        let generation = searchGeneration
+        albumLoadTask = Task {
+            defer {
+                if generation == searchGeneration { isLoadingMoreArtistAlbums = false }
+            }
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                let page = try await searchProvider.albums(
+                    forArtistID: artist.id, page: nextPage, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      selectedArtist?.id == artist.id, selectedAlbum == nil else { return }
+                let known = Set(artistAlbums.map(\.id))
+                artistAlbums += page.albums.filter { !known.contains($0.id) }
+                artistAlbumPage = nextPage
+                hasMoreArtistAlbums = page.hasMore && !page.albums.isEmpty
+            } catch {
+                // Keep prior albums and allow an explicit retry.
+            }
+        }
+    }
+
+    func showAlbum(_ album: MusicSearchAlbum) {
+        guard case .signedIn = status else { return }
+        cancelSearch()
+        if selectedArtist == nil && selectedAlbum == nil {
+            previousSearchTracks = searchResults
+        }
+        if selectedArtist != nil && selectedAlbum == nil {
+            previousArtistTracks = searchResults
+        }
+        searchResults = []
+        selectedAlbum = album
+        searchStatus = .searching
+        let generation = searchGeneration
+        searchTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicSearchError.invalidToken
+                }
+                let tracks = try await searchProvider.tracks(
+                    forAlbum: album, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == searchGeneration,
+                      selectedAlbum?.id == album.id,
+                      case .signedIn = status else { return }
+                searchResults = tracks
+                searchStatus = .ready
+            } catch is CancellationError {
+            } catch {
+                guard generation == searchGeneration,
+                      selectedAlbum?.id == album.id,
+                      case .signedIn = status else { return }
+                searchStatus = .failed(Self.searchMessage(for: error))
+            }
+        }
+    }
+
+    func returnFromAlbum() {
+        cancelSearch()
+        selectedAlbum = nil
+        if selectedArtist != nil {
+            searchResults = previousArtistTracks
+            previousArtistTracks = []
+        } else {
+            searchResults = previousSearchTracks
+            previousSearchTracks = []
+        }
+        searchStatus = .ready
+    }
+
     func returnToArtistResults() {
+        if selectedAlbum != nil {
+            returnFromAlbum()
+            return
+        }
         cancelSearch()
         selectedArtist = nil
+        artistAlbums = []
+        hasMoreArtistAlbums = false
         searchResults = previousSearchTracks
         previousSearchTracks = []
         searchStatus = .ready
@@ -381,11 +537,15 @@ final class MusicSignInModel {
     }
 
     private func clearCatalog() {
-        cancelSearch()
+        resetSearch()
         previousSearchTracks = []
+        previousArtistTracks = []
         searchResults = []
         artistResults = []
+        albumResults = []
+        artistAlbums = []
         selectedArtist = nil
+        selectedAlbum = nil
         searchStatus = .idle
         playQueue = []
         currentQueueIndex = nil
@@ -396,6 +556,9 @@ final class MusicSignInModel {
         searchGeneration &+= 1
         searchTask?.cancel()
         searchTask = nil
+        albumLoadTask?.cancel()
+        albumLoadTask = nil
+        isLoadingMoreArtistAlbums = false
     }
 
     private static func searchMessage(for error: Error) -> String {
