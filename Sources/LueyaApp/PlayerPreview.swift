@@ -21,6 +21,7 @@ struct PlayerPreview: View {
     @State private var searchScope: SearchScope = .all
     @State private var coverImage: NSImage?
     @State private var searchDebounceTask: Task<Void, Never>?
+    @FocusState private var searchFieldFocused: Bool
     @State private var draftSeekSeconds: Double?
     @State private var contentRevealed = false
     @State private var breathing = false
@@ -195,13 +196,13 @@ struct PlayerPreview: View {
 
     private func signedInContent(account: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            if showingResults {
-                searchSection
-            } else {
+            // Keep the search field at a stable identity while the player
+            // collapses; otherwise typing may discard focus mid-query.
+            if !showingResults {
                 playerSection
                 divider
-                searchSection
             }
+            searchSection
 
             Spacer(minLength: 0)
             divider
@@ -404,7 +405,14 @@ struct PlayerPreview: View {
                 TextField("Search music", text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
+                    .focused($searchFieldFocused)
                     .onSubmit(performSearch)
+                    .onChange(of: searchFieldFocused) { _, focused in
+                        if focused && !showingResults &&
+                            !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            performSearch()
+                        }
+                    }
                     .onChange(of: query) { _, updated in
                         searchDebounceTask?.cancel()
                         signIn.resetSearch()
@@ -494,7 +502,11 @@ struct PlayerPreview: View {
                 } else if case .failed(let message) = signIn.searchStatus {
                     statusLine(message, symbol: "info.circle")
                 } else if displayedCount == 0 {
-                    statusLine("No matches. Try another search.", symbol: "magnifyingglass")
+                    if signIn.searchStatus == .ready {
+                        statusLine("No matches. Try another search.", symbol: "magnifyingglass")
+                    } else {
+                        statusLine("Searching the music catalog…", symbol: "magnifyingglass")
+                    }
                 } else {
                     if shouldShowArtists && !signIn.artistResults.isEmpty {
                         resultHeading("ARTISTS")
