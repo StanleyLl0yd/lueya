@@ -56,7 +56,10 @@ final class YandexMusicSearchProviderTests: XCTestCase {
         let provider = YandexMusicSearchProvider(transport: ArtistLookupTransport())
         let artists = try await provider.artists(matching: "кино", accessToken: "my-test-token")
         XCTAssertEqual(artists, [
-            MusicSearchArtist(id: "77", name: "Кино"),
+            MusicSearchArtist(
+                id: "77", name: "Кино",
+                coverURI: "avatars.yandex.net/get-music-content/artist/77/%%"
+            ),
             MusicSearchArtist(id: "88", name: "КИНО tribute")
         ])
         let tracks = try await provider.tracks(
@@ -319,7 +322,8 @@ final class YandexMusicSearchProviderTests: XCTestCase {
                 XCTAssertEqual(type, "artist")
                 body = """
                 {"result":{"artists":{"results":[
-                    {"id":77,"name":"Кино","available":true},
+                    {"id":77,"name":"Кино","available":true,
+                     "cover":{"uri":"avatars.yandex.net/get-music-content/artist/77/%%"}},
                     {"id":88,"name":"КИНО tribute"},
                     {"id":77,"name":"Duplicate"}
                 ]}}}
