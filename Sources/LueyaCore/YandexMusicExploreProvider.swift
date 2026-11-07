@@ -221,6 +221,7 @@ public struct YandexMusicExploreProvider: Sendable {
         )
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("YandexMusicAndroid/24023621", forHTTPHeaderField: "X-Yandex-Music-Client")
         request.setValue("OAuth \(token)", forHTTPHeaderField: "Authorization")
         if let body {
             request.httpBody = body
