@@ -274,12 +274,8 @@ final class MusicSignInModel {
     func playRecent(_ selected: MusicSearchTrack) {
         guard case .signedIn = status else { return }
         resetMyWaveSession()
-        playQueue = recentTracks
-        currentQueueIndex = playQueue.firstIndex(where: { $0.id == selected.id })
-        if currentQueueIndex == nil {
-            playQueue = [selected]
-            currentQueueIndex = 0
-        }
+        playQueue = [selected]
+        currentQueueIndex = 0
         loadTrack(selected)
     }
 
@@ -342,8 +338,10 @@ final class MusicSignInModel {
                     return
                 }
                 let nextIndex = playQueue.count
+                let currentTrackFinishedWhilePrefetching =
+                    playback.status == .finished && currentQueueIndex == nextIndex - 1
                 playQueue.append(contentsOf: newTracks)
-                if playImmediately {
+                if playImmediately || currentTrackFinishedWhilePrefetching {
                     currentQueueIndex = nextIndex
                     loadTrack(playQueue[nextIndex])
                 }
@@ -403,9 +401,10 @@ final class MusicSignInModel {
     private func advanceQueueOrFetchWave() {
         guard let index = currentQueueIndex else { return }
         if playQueue.indices.contains(index + 1) {
-            currentQueueIndex = index + 1
-            loadTrack(playQueue[index + 1])
-            if myWaveSessionID != nil && playQueue.count - currentQueueIndex! <= 3 {
+            let nextIndex = index + 1
+            currentQueueIndex = nextIndex
+            loadTrack(playQueue[nextIndex])
+            if myWaveSessionID != nil && playQueue.count - nextIndex <= 3 {
                 loadMoreMyWaveBatch(playImmediately: false)
             }
         } else if myWaveSessionID != nil && !myWaveTerminated {
