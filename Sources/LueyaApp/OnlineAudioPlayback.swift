@@ -30,9 +30,11 @@ final class OnlineAudioPlayback {
     @ObservationIgnored private var playerControlObservation: NSKeyValueObservation?
     @ObservationIgnored private var startupWatchdog: Task<Void, Never>?
     @ObservationIgnored private var playbackGeneration: UInt64 = 0
+    @ObservationIgnored private var onStarted: (@MainActor () -> Void)?
 
     func start(
         _ track: ResolvedTrack,
+        onStarted: @escaping @MainActor () -> Void = {},
         onFinished: @escaping @MainActor () -> Void,
         renewSource: @escaping @MainActor () async throws -> ResolvedTrack
     ) {
@@ -63,6 +65,7 @@ final class OnlineAudioPlayback {
         self.loader = handler
         self.asset = asset
         self.player = player
+        self.onStarted = onStarted
         status = .connecting
         itemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             let rawStatus = item.status.rawValue
@@ -173,6 +176,7 @@ final class OnlineAudioPlayback {
         if let failedObserver { NotificationCenter.default.removeObserver(failedObserver) }
         endObserver = nil
         failedObserver = nil
+        onStarted = nil
 
         player?.pause()
         player?.replaceCurrentItem(with: nil)
@@ -201,6 +205,9 @@ final class OnlineAudioPlayback {
             startupWatchdog?.cancel()
             startupWatchdog = nil
             status = .playing
+            let callback = onStarted
+            onStarted = nil
+            callback?()
         }
     }
 

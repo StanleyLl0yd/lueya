@@ -1,6 +1,6 @@
 # Architecture
 
-Status: v0.4.0 experimental AVFoundation playback and signed-source recovery; M0 OPEN pending real full-track evidence, provider rights and repository-wide acceptance audit.
+Status: v0.5.6 candidate adds authenticated Explore history and experimental My Wave radio; M0 remains OPEN pending provider rights, full end-to-end playback and owner-device acceptance.
 
 ## Platform and toolchain
 
@@ -13,7 +13,7 @@ Status: v0.4.0 experimental AVFoundation playback and signed-source recovery; M0
 ## Implemented M0 skeleton
 
 - `LueyaApp`: native window-style SwiftUI MenuBarExtra
-- `PlayerPreview`: warm matte-glass menu with source checking, experimental playback controls, dynamic version footer and accessibility settings
+- `PlayerPreview`: Explore home, dedicated category Search, artist/album navigation, mini-player and full Player screen in the warm matte-glass menu
 - `LueyaCore`: account/OAuth/Keychain, source negotiation, bounded CDN range transport, native resource-loader bridge, and fail-closed signed-source renewal policy
 - `OnlineAudioPlayback`: native AVPlayer through a private in-memory resource delegate, play/pause/stop/seek, cancellation on sign-out
 - `App/Info.plist`: background-menu agent, macOS 26 deployment
@@ -25,7 +25,7 @@ A user has confirmed login and raw AAC-MP4 hq source discovery; actual
 full audio playback, seek, expiry, interruptions and track completion remain
 unverified on user hardware. CI now includes native generated-AAC AVAsset
 resource-loader tests; they do not prove real provider delivery.
-No queue, search, My Wave, library or media-key controls yet.
+The in-memory queue now supports catalog playback and My Wave radio batches. Explore reads recent listening history and sends limited radio feedback to Yandex Music. Search remains account-authenticated. No music catalog, audio or OAuth token is persisted outside the existing Keychain/session boundary.
 Outbound HTTPS is limited by application policy and sandbox entitlements.
 
 ## Boundaries after feasibility
