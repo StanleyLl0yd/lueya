@@ -384,14 +384,8 @@ struct PlayerPreview: View {
                         }
                     } label: {
                         Label(
-                            signIn.currentTrack?.id == track.id &&
-                                (signIn.playback.status == .playing ||
-                                 signIn.playback.status == .connecting)
-                                ? "Pause" : "Play again",
-                            systemImage: signIn.currentTrack?.id == track.id &&
-                                (signIn.playback.status == .playing ||
-                                 signIn.playback.status == .connecting)
-                                ? "pause.fill" : "play.fill"
+                            featuredActionTitle(for: track),
+                            systemImage: featuredActionSymbol(for: track)
                         )
                         .font(.system(size: 10, weight: .medium))
                         .padding(.horizontal, 9)
@@ -482,6 +476,21 @@ struct PlayerPreview: View {
             }
         }
         .padding(.bottom, signIn.myWaveMessage == nil ? 0 : 10)
+    }
+
+    private func featuredActionTitle(for track: MusicSearchTrack) -> String {
+        guard signIn.currentTrack?.id == track.id else { return "Play again" }
+        switch signIn.playback.status {
+        case .playing, .connecting: return "Pause"
+        case .paused: return "Resume"
+        default: return "Play again"
+        }
+    }
+
+    private func featuredActionSymbol(for track: MusicSearchTrack) -> String {
+        guard signIn.currentTrack?.id == track.id else { return "play.fill" }
+        return signIn.playback.status == .playing ||
+            signIn.playback.status == .connecting ? "pause.fill" : "play.fill"
     }
 
     private var exploreRecentTracks: [MusicSearchTrack] {
