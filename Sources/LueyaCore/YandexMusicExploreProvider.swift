@@ -75,11 +75,11 @@ public struct YandexMusicExploreProvider: Sendable {
             resolvingAgainstBaseURL: false
         )!
         components.queryItems = [
-            URLQueryItem(name: "full_models_count", value: String(limit))
+            URLQueryItem(name: "fullModelsCount", value: String(limit))
         ]
         guard let url = components.url else { throw MusicExploreError.invalidResponse }
         let data = try await perform(url: url, method: "GET", token: accessToken)
-        guard let result = try? Self.decoder.decode(HistoryEnvelope.self, from: data).result,
+        guard let result = try? Self.decode(HistoryEnvelope.self, from: data).result,
               let tabs = result.historyTabs else {
             throw MusicExploreError.invalidPayload
         }
@@ -113,7 +113,7 @@ public struct YandexMusicExploreProvider: Sendable {
         let data = try await perform(
             url: url, method: "POST", token: accessToken, body: body
         )
-        guard let result = try? Self.decoder.decode(WaveSessionEnvelope.self, from: data).result,
+        guard let result = try? Self.decode(WaveSessionEnvelope.self, from: data).result,
               let sessionID = result.radioSessionId,
               Self.validatedSessionID(sessionID) != nil else {
             throw MusicExploreError.invalidPayload
@@ -132,7 +132,7 @@ public struct YandexMusicExploreProvider: Sendable {
         sessionID: String, queue: [String], accessToken: String
     ) async throws -> MusicWaveBatch {
         guard let id = Self.validatedSessionID(sessionID),
-              queue.count <= 100,
+              queue.count <= 500,
               queue.allSatisfy({ Self.validatedQueueIdentifier($0) != nil }) else {
             throw MusicExploreError.invalidSession
         }
@@ -145,7 +145,7 @@ public struct YandexMusicExploreProvider: Sendable {
         let data = try await perform(
             url: url, method: "POST", token: accessToken, body: body
         )
-        guard let result = try? Self.decoder.decode(WaveBatchEnvelope.self, from: data).result,
+        guard let result = try? Self.decode(WaveBatchEnvelope.self, from: data).result,
               result.unknownSession != true else {
             throw MusicExploreError.invalidSession
         }
@@ -242,11 +242,11 @@ public struct YandexMusicExploreProvider: Sendable {
         return data
     }
 
-    private static let decoder: JSONDecoder = {
+    private static func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return decoder
-    }()
+        return try decoder.decode(type, from: data)
+    }
 
     private static func validateToken(_ token: String) throws {
         guard !token.isEmpty,
