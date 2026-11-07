@@ -325,10 +325,10 @@ struct PlayerPreview: View {
 
                     myWaveCard
 
-                    if signIn.recentTracks.count > 1 {
+                    if !exploreRecentTracks.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             sectionHeading("RECENTLY PLAYED")
-                            ForEach(Array(signIn.recentTracks.dropFirst().prefix(6))) { track in
+                            ForEach(exploreRecentTracks) { track in
                                 recentTrackRow(track)
                             }
                         }
@@ -377,7 +377,7 @@ struct PlayerPreview: View {
                             .lineLimit(1)
                     }
                     Button {
-                        if signIn.currentTrack?.id == track.id {
+                        if signIn.currentTrack?.id == track.id && canPlay {
                             signIn.playOrPause()
                         } else {
                             signIn.playRecent(track)
@@ -398,7 +398,7 @@ struct PlayerPreview: View {
                         .frame(height: 27)
                     }
                     .buttonStyle(QuietGlassButtonStyle(surface: .filled))
-                    .disabled(signIn.currentTrack?.id == track.id && !canPlay)
+                    .disabled(signIn.currentTrack?.id == track.id && isCurrentTrackLoading)
                 }
                 Spacer(minLength: 0)
             }
@@ -471,6 +471,19 @@ struct PlayerPreview: View {
             }
         }
         .padding(.bottom, signIn.myWaveMessage == nil ? 0 : 10)
+    }
+
+    private var exploreRecentTracks: [MusicSearchTrack] {
+        let history = signIn.recentTracks
+        if let current = signIn.currentTrack, history.first?.id == current.id {
+            return Array(history.dropFirst().prefix(6))
+        }
+        return Array(history.prefix(6))
+    }
+
+    private var isCurrentTrackLoading: Bool {
+        if case .checking = signIn.sourceProbe { return true }
+        return false
     }
 
     private func recentTrackRow(_ track: MusicSearchTrack) -> some View {
