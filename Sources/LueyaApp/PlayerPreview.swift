@@ -623,7 +623,7 @@ struct PlayerPreview: View {
                         .font(.system(size: 14))
                         .frame(width: 29, height: 28)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(QuietGlassButtonStyle(surface: .text))
                 .foregroundStyle(secondary)
                 .accessibilityLabel("Clear search")
             }
@@ -729,7 +729,7 @@ struct PlayerPreview: View {
                         .frame(height: 32)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(QuietGlassButtonStyle(surface: .text))
                     .disabled(signIn.isLoadingMoreArtistAlbums)
                 }
                 if signIn.searchStatus == .searching &&
@@ -899,7 +899,7 @@ struct PlayerPreview: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(QuietGlassButtonStyle(surface: .text))
             Spacer(minLength: 2)
             Button(action: signIn.playOrPause) {
                 Image(systemName: playIcon)
@@ -947,7 +947,7 @@ struct PlayerPreview: View {
                 .frame(maxWidth: .infinity, minHeight: 27, alignment: .leading)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuietGlassButtonStyle(surface: .text))
         .foregroundStyle(accent)
     }
 
@@ -992,7 +992,7 @@ struct PlayerPreview: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(QuietGlassButtonStyle(surface: .text))
                         .accessibilityLabel("Browse music by \(track.artistName)")
 
                         if let album = track.album {
@@ -1011,7 +1011,7 @@ struct PlayerPreview: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(QuietGlassButtonStyle(surface: .text))
                             .accessibilityLabel("Browse album \(album.title)")
                         }
                     } else {
