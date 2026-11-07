@@ -1096,6 +1096,44 @@ struct PlayerPreview: View {
         }
     }
 
+    private var statusPhase: Int {
+        switch signIn.status {
+        case .restoring: 0
+        case .signedOut: 1
+        case .requestingCode, .awaitingAuthorization: 2
+        case .signedIn: 3
+        case .signingOut: 4
+        case .failed: 5
+        }
+    }
+
+    private var playIcon: String {
+        switch signIn.playback.status {
+        case .playing, .connecting: return "pause.fill"
+        default: return "play.fill"
+        }
+    }
+
+    private var playLabel: String {
+        switch signIn.playback.status {
+        case .playing, .connecting: return "Pause"
+        case .paused: return "Resume"
+        case .finished: return "Replay"
+        default: return "Play"
+        }
+    }
+
+    private var canPlay: Bool {
+        guard signIn.currentTrack != nil else { return false }
+        if case .verified = signIn.sourceProbe { return true }
+        return false
+    }
+
+    private var playbackHasError: Bool {
+        if case .failed = signIn.playback.status { return true }
+        return signIn.playback.status == .idle
+    }
+
     private func performSearch() {
         searchDebounceTask?.cancel()
         let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
