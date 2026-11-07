@@ -117,7 +117,8 @@ final class YandexMusicExploreProviderTests: XCTestCase {
         let redirected = StubTransport(
             path: "/music-history", method: "GET",
             body: #"{"result":{"historyTabs":[]}}"#,
-            responseURL: "https://evil.example/music-history?fullModelsCount=8"
+            responseURL: "https://evil.example/music-history?fullModelsCount=8",
+            expectedQuery: "fullModelsCount=8"
         )
         do {
             _ = try await YandexMusicExploreProvider(transport: redirected)
@@ -129,7 +130,7 @@ final class YandexMusicExploreProviderTests: XCTestCase {
 
         let forbidden = StubTransport(
             path: "/music-history", method: "GET", body: #"{"error":"forbidden"}"#,
-            status: 403
+            status: 403, expectedQuery: "fullModelsCount=8"
         )
         do {
             _ = try await YandexMusicExploreProvider(transport: forbidden)
