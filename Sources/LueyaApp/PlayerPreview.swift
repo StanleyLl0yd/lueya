@@ -1420,6 +1420,7 @@ private struct QuietGlassButtonStyle: ButtonStyle {
                         .white.opacity(surface == .text ? 0 : (hovered ? 0.90 : 0.65)),
                         lineWidth: 1
                     )
+                    .allowsHitTesting(false)
             }
             .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             // Only press-feedback changes geometry; hover must not move hit targets.
