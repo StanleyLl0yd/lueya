@@ -497,7 +497,7 @@ struct PlayerPreview: View {
             .frame(maxWidth: .infinity, minHeight: 46)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuietGlassButtonStyle(surface: .text))
     }
 
     private var searchPage: some View {
@@ -787,7 +787,7 @@ struct PlayerPreview: View {
             .frame(maxWidth: .infinity, minHeight: 46)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuietGlassButtonStyle(surface: .text))
         .accessibilityLabel("Play \(track.title) by \(track.artistName)")
     }
 
@@ -816,7 +816,7 @@ struct PlayerPreview: View {
             .frame(maxWidth: .infinity, minHeight: 64)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuietGlassButtonStyle(surface: .text))
         .accessibilityLabel("Browse album \(album.title)")
     }
 
@@ -843,7 +843,7 @@ struct PlayerPreview: View {
             .frame(maxWidth: .infinity, minHeight: 64)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuietGlassButtonStyle(surface: .text))
         .accessibilityLabel("Browse artist \(artist.name)")
     }
 
