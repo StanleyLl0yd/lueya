@@ -399,6 +399,12 @@ final class MusicSignInModel {
             myWaveFeedbackStarted = true
         }
         sendMyWaveFeedback(.trackStarted, track: track)
+        if let index = currentQueueIndex,
+           playQueue.count - index <= 3 {
+            // Wait until the current track has actually started so its feedback
+            // is queued before the next recommendation batch is requested.
+            loadMoreMyWaveBatch(playImmediately: false)
+        }
     }
 
     private func advanceAfterWaveTrackFinished(_ track: MusicSearchTrack) {
@@ -420,9 +426,6 @@ final class MusicSignInModel {
             trimMyWaveQueueIfNeeded()
             guard let nextIndex = currentQueueIndex else { return }
             loadTrack(playQueue[nextIndex])
-            if myWaveSessionID != nil && playQueue.count - nextIndex <= 3 {
-                loadMoreMyWaveBatch(playImmediately: false)
-            }
         } else if myWaveSessionID != nil && !myWaveTerminated {
             loadMoreMyWaveBatch(playImmediately: true)
         }
