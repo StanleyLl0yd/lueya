@@ -1384,7 +1384,7 @@ private enum SafeArtworkLoader {
                         kCGImageSourceThumbnailMaxPixelSize: max(48, maximumPixelSize)
                     ] as CFDictionary
                   ) else { return nil }
-            return NSImage(cgImage: image, size: NSSize(width: CGFloat(width), height: CGFloat(height)))
+            return NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         } catch {
             return nil
         }
