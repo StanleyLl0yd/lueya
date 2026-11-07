@@ -29,6 +29,13 @@ final class MusicSignInModel {
         case failed(String)
     }
 
+    enum ExploreStatus: Equatable {
+        case idle
+        case loading
+        case ready
+        case failed(String)
+    }
+
     private enum FailedOperation {
         case restore
         case signIn
@@ -53,10 +60,17 @@ final class MusicSignInModel {
     private var previousArtistTracks: [MusicSearchTrack] = []
     private var albumLoadTask: Task<Void, Never>?
     private(set) var currentTrack: MusicSearchTrack?
+    private(set) var recentTracks: [MusicSearchTrack] = []
+    private(set) var exploreStatus: ExploreStatus = .idle
+    private(set) var isStartingMyWave = false
+    private(set) var isLoadingMyWaveBatch = false
+    private(set) var myWaveMessage: String?
+    private(set) var isMyWaveActive = false
 
     var canSkipNext: Bool {
         guard let currentQueueIndex else { return false }
-        return currentQueueIndex + 1 < playQueue.count
+        if currentQueueIndex + 1 < playQueue.count { return true }
+        return myWaveSessionID != nil && !myWaveTerminated && !isLoadingMyWaveBatch
     }
 
     var canSkipPrevious: Bool {
@@ -68,6 +82,16 @@ final class MusicSignInModel {
     @ObservationIgnored private let session = YandexMusicSession()
     @ObservationIgnored private let streamProvider = YandexMusicStreamProvider()
     @ObservationIgnored private let searchProvider = YandexMusicSearchProvider()
+    @ObservationIgnored private let exploreProvider = YandexMusicExploreProvider()
+    @ObservationIgnored private var exploreTask: Task<Void, Never>?
+    @ObservationIgnored private var exploreGeneration: UInt64 = 0
+    @ObservationIgnored private var myWaveTask: Task<Void, Never>?
+    @ObservationIgnored private var myWaveGeneration: UInt64 = 0
+    @ObservationIgnored private var myWaveSessionID: String?
+    @ObservationIgnored private var myWaveBatchByTrackID: [String: String] = [:]
+    @ObservationIgnored private var myWaveQueueIdentifiers: [String] = []
+    @ObservationIgnored private var myWaveFeedbackStarted = false
+    @ObservationIgnored private var myWaveTerminated = false
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var searchGeneration: UInt64 = 0
     @ObservationIgnored private var playQueue: [MusicSearchTrack] = []
@@ -91,6 +115,7 @@ final class MusicSignInModel {
                     ? "Saved session loaded. Account verification is temporarily unavailable."
                     : nil
                 status = .signedIn(account.account?.login ?? "Yandex Music account")
+                loadExplore()
             } else {
                 sessionNotice = nil
                 status = .signedOut
@@ -135,6 +160,7 @@ final class MusicSignInModel {
                 code = nil
                 failedOperation = .signIn
                 status = .signedIn(account.account?.login ?? "Yandex Music account")
+                loadExplore()
             } catch is CancellationError {
                 code = nil
                 status = .signedOut
@@ -171,6 +197,219 @@ final class MusicSignInModel {
                 failedOperation = .signOut
                 status = .failed(Self.message(for: error))
             }
+        }
+    }
+
+    func refreshExplore() {
+        loadExplore()
+    }
+
+    private func loadExplore() {
+        guard case .signedIn = status else { return }
+        exploreTask?.cancel()
+        exploreGeneration &+= 1
+        let generation = exploreGeneration
+        exploreStatus = .loading
+        exploreTask = Task {
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicExploreError.invalidToken
+                }
+                let tracks = try await exploreProvider.recentTracks(
+                    accessToken: token, limit: 8
+                )
+                try Task.checkCancellation()
+                guard generation == exploreGeneration, case .signedIn = status else { return }
+                recentTracks = tracks
+                exploreStatus = .ready
+            } catch is CancellationError {
+            } catch {
+                guard generation == exploreGeneration, case .signedIn = status else { return }
+                exploreStatus = .failed(Self.exploreMessage(for: error))
+            }
+        }
+    }
+
+    func startMyWave() {
+        guard case .signedIn = status, !isStartingMyWave else { return }
+        resetMyWaveSession()
+        let generation = myWaveGeneration
+        isStartingMyWave = true
+        myWaveMessage = nil
+        myWaveTask = Task {
+            defer {
+                if generation == myWaveGeneration { isStartingMyWave = false }
+            }
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicExploreError.invalidToken
+                }
+                let radio = try await exploreProvider.startMyWave(accessToken: token)
+                try Task.checkCancellation()
+                guard generation == myWaveGeneration, case .signedIn = status else { return }
+                guard !radio.tracks.isEmpty else {
+                    myWaveTerminated = radio.terminated
+                    myWaveMessage = "Yandex Music has no recommendations available right now."
+                    return
+                }
+                myWaveSessionID = radio.id
+                myWaveTerminated = radio.terminated
+                myWaveQueueIdentifiers = radio.queueIdentifiers
+                if let batchID = radio.batchID {
+                    for track in radio.tracks { myWaveBatchByTrackID[track.id] = batchID }
+                }
+                myWaveFeedbackStarted = false
+                isMyWaveActive = true
+                playQueue = radio.tracks
+                currentQueueIndex = 0
+                loadTrack(radio.tracks[0])
+            } catch is CancellationError {
+            } catch {
+                guard generation == myWaveGeneration, case .signedIn = status else { return }
+                myWaveMessage = Self.exploreMessage(for: error)
+            }
+        }
+    }
+
+    func playRecent(_ selected: MusicSearchTrack) {
+        guard case .signedIn = status else { return }
+        resetMyWaveSession()
+        playQueue = recentTracks
+        currentQueueIndex = playQueue.firstIndex(where: { $0.id == selected.id })
+        if currentQueueIndex == nil {
+            playQueue = [selected]
+            currentQueueIndex = 0
+        }
+        loadTrack(selected)
+    }
+
+    func playAll(_ tracks: [MusicSearchTrack]) {
+        guard case .signedIn = status, let first = tracks.first else { return }
+        resetMyWaveSession()
+        playQueue = tracks
+        currentQueueIndex = 0
+        loadTrack(first)
+    }
+
+    private func resetMyWaveSession() {
+        myWaveGeneration &+= 1
+        myWaveTask?.cancel()
+        myWaveTask = nil
+        myWaveSessionID = nil
+        myWaveBatchByTrackID = [:]
+        myWaveQueueIdentifiers = []
+        myWaveFeedbackStarted = false
+        myWaveTerminated = false
+        isStartingMyWave = false
+        isLoadingMyWaveBatch = false
+        isMyWaveActive = false
+        myWaveMessage = nil
+    }
+
+    private func loadMoreMyWaveBatch(playImmediately: Bool) {
+        guard case .signedIn = status, let sessionID = myWaveSessionID,
+              !myWaveTerminated, !isLoadingMyWaveBatch else { return }
+        isLoadingMyWaveBatch = true
+        let generation = myWaveGeneration
+        let queue = myWaveQueueIdentifiers
+        myWaveTask = Task {
+            defer {
+                if generation == myWaveGeneration { isLoadingMyWaveBatch = false }
+            }
+            do {
+                guard let token = try await session.validAccessToken() else {
+                    throw MusicExploreError.invalidToken
+                }
+                let batch = try await exploreProvider.nextMyWaveBatch(
+                    sessionID: sessionID, queue: queue, accessToken: token
+                )
+                try Task.checkCancellation()
+                guard generation == myWaveGeneration, myWaveSessionID == sessionID,
+                      case .signedIn = status else { return }
+                let known = Set(playQueue.map(\.id))
+                let newTracks = batch.tracks.filter { !known.contains($0.id) }
+                myWaveQueueIdentifiers = Array(
+                    Set(myWaveQueueIdentifiers + batch.queueIdentifiers)
+                ).sorted()
+                if let batchID = batch.batchID {
+                    for track in newTracks { myWaveBatchByTrackID[track.id] = batchID }
+                }
+                myWaveTerminated = batch.terminated
+                guard !newTracks.isEmpty else {
+                    if playImmediately && batch.terminated {
+                        myWaveMessage = "You've reached the end of this My Wave session."
+                    }
+                    return
+                }
+                let nextIndex = playQueue.count
+                playQueue.append(contentsOf: newTracks)
+                if playImmediately {
+                    currentQueueIndex = nextIndex
+                    loadTrack(playQueue[nextIndex])
+                }
+            } catch is CancellationError {
+            } catch {
+                guard generation == myWaveGeneration else { return }
+                myWaveMessage = Self.exploreMessage(for: error)
+            }
+        }
+    }
+
+    private func sendMyWaveFeedback(
+        _ event: MusicWaveFeedbackEvent,
+        track: MusicSearchTrack? = nil,
+        totalPlayedSeconds: Double? = nil
+    ) {
+        guard let sessionID = myWaveSessionID else { return }
+        let generation = myWaveGeneration
+        let batchID = track.flatMap { myWaveBatchByTrackID[$0.id] }
+        let identifier = track?.radioQueueIdentifier
+        Task {
+            do {
+                guard let token = try await session.validAccessToken() else { return }
+                guard generation == myWaveGeneration, myWaveSessionID == sessionID else { return }
+                try await exploreProvider.sendFeedback(
+                    sessionID: sessionID, event: event,
+                    trackIdentifier: identifier, totalPlayedSeconds: totalPlayedSeconds,
+                    batchID: batchID, accessToken: token
+                )
+            } catch {
+                // Feedback is best-effort; playback must never depend on it.
+            }
+        }
+    }
+
+    private func myWaveTrackDidStart(_ track: MusicSearchTrack) {
+        guard isMyWaveActive, myWaveSessionID != nil else { return }
+        if !myWaveFeedbackStarted {
+            sendMyWaveFeedback(.radioStarted)
+            myWaveFeedbackStarted = true
+        }
+        sendMyWaveFeedback(.trackStarted, track: track)
+    }
+
+    private func advanceAfterWaveTrackFinished(_ track: MusicSearchTrack) {
+        guard isMyWaveActive, myWaveSessionID != nil else {
+            skipNext()
+            return
+        }
+        sendMyWaveFeedback(
+            .trackFinished, track: track,
+            totalPlayedSeconds: max(playback.elapsedSeconds, playback.durationSeconds)
+        )
+        advanceQueueOrFetchWave()
+    }
+
+    private func advanceQueueOrFetchWave() {
+        guard let index = currentQueueIndex else { return }
+        if playQueue.indices.contains(index + 1) {
+            currentQueueIndex = index + 1
+            loadTrack(playQueue[index + 1])
+            if myWaveSessionID != nil && playQueue.count - currentQueueIndex! <= 3 {
+                loadMoreMyWaveBatch(playImmediately: false)
+            }
+        } else if myWaveSessionID != nil && !myWaveTerminated {
+            loadMoreMyWaveBatch(playImmediately: true)
         }
     }
 
@@ -477,6 +716,7 @@ final class MusicSignInModel {
 
     func play(_ selected: MusicSearchTrack) {
         guard case .signedIn = status else { return }
+        resetMyWaveSession()
         let results = searchResults
         playQueue = results.contains(where: { $0.id == selected.id }) ? results : [selected]
         currentQueueIndex = playQueue.firstIndex(where: { $0.id == selected.id })
@@ -484,11 +724,14 @@ final class MusicSignInModel {
     }
 
     func skipNext() {
-        guard case .signedIn = status,
-              let index = currentQueueIndex,
-              playQueue.indices.contains(index + 1) else { return }
-        currentQueueIndex = index + 1
-        loadTrack(playQueue[index + 1])
+        guard case .signedIn = status, let index = currentQueueIndex else { return }
+        if isMyWaveActive, let currentTrack {
+            sendMyWaveFeedback(
+                .skip, track: currentTrack,
+                totalPlayedSeconds: playback.elapsedSeconds
+            )
+        }
+        advanceQueueOrFetchWave()
     }
 
     func skipPrevious() {
@@ -537,6 +780,11 @@ final class MusicSignInModel {
     }
 
     private func clearCatalog() {
+        exploreTask?.cancel()
+        exploreGeneration &+= 1
+        recentTracks = []
+        exploreStatus = .idle
+        resetMyWaveSession()
         resetSearch()
         previousSearchTracks = []
         previousArtistTracks = []
@@ -559,6 +807,26 @@ final class MusicSignInModel {
         albumLoadTask?.cancel()
         albumLoadTask = nil
         isLoadingMoreArtistAlbums = false
+    }
+
+    private static func exploreMessage(for error: Error) -> String {
+        guard let failure = error as? MusicExploreError else {
+            return "Personal recommendations are temporarily unavailable."
+        }
+        switch failure {
+        case .invalidToken, .unauthorized:
+            return "Your Yandex Music session expired. Sign in again."
+        case .forbidden:
+            return "This account cannot access personal recommendations."
+        case .rateLimited:
+            return "Yandex Music is receiving too many requests. Try again later."
+        case .invalidSession:
+            return "The recommendation session expired. Start My Wave again."
+        case .invalidResponse, .invalidPayload:
+            return "Yandex Music returned an unexpected Explore response."
+        case .httpStatus:
+            return "Explore is temporarily unavailable. Check your connection."
+        }
     }
 
     private static func searchMessage(for error: Error) -> String {
@@ -681,12 +949,23 @@ final class MusicSignInModel {
         let operation = playbackOperationGeneration
         let probe = sourceProbeGeneration
         let trackID = track.metadata.id
-        playback.start(track, onFinished: { [weak self] in
+        playback.start(track, onStarted: { [weak self] in
             guard let self,
                   self.playbackOperationGeneration == operation,
                   self.sourceProbeGeneration == probe,
                   self.currentTrack?.id == trackID else { return }
-            self.skipNext()
+            self.myWaveTrackDidStart(self.currentTrack ?? MusicSearchTrack(
+                id: trackID, title: track.metadata.title,
+                artists: track.metadata.artists,
+                durationMilliseconds: track.metadata.durationMilliseconds
+            ))
+        }, onFinished: { [weak self] in
+            guard let self,
+                  self.playbackOperationGeneration == operation,
+                  self.sourceProbeGeneration == probe,
+                  self.currentTrack?.id == trackID,
+                  let selected = self.currentTrack else { return }
+            self.advanceAfterWaveTrackFinished(selected)
         }) { [weak self] in
             guard let self,
                   self.playbackOperationGeneration == operation,
