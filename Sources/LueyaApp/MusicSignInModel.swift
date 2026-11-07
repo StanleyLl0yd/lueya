@@ -259,8 +259,9 @@ final class MusicSignInModel {
                 if let batchID = radio.batchID {
                     for track in radio.tracks { myWaveBatchByTrackID[track.id] = batchID }
                 }
-                myWaveFeedbackStarted = false
+                myWaveFeedbackStarted = true
                 isMyWaveActive = true
+                sendMyWaveFeedback(.radioStarted)
                 playQueue = radio.tracks
                 currentQueueIndex = 0
                 loadTrack(radio.tracks[0])
@@ -751,7 +752,9 @@ final class MusicSignInModel {
 
     func skipNext() {
         guard case .signedIn = status, currentQueueIndex != nil else { return }
-        if isMyWaveActive, let currentTrack {
+        if isMyWaveActive, let currentTrack,
+           (playback.status == .playing || playback.status == .paused ||
+            playback.elapsedSeconds > 0) {
             sendMyWaveFeedback(
                 .skip, track: currentTrack,
                 totalPlayedSeconds: playback.elapsedSeconds
