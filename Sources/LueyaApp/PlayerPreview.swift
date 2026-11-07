@@ -588,6 +588,10 @@ struct PlayerPreview: View {
         .onAppear {
             if signIn.selectedArtist == nil && signIn.selectedAlbum == nil {
                 searchFieldFocused = true
+                if signIn.searchStatus == .idle &&
+                    !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    performSearch()
+                }
             }
         }
     }
