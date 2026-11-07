@@ -18,6 +18,10 @@ public struct MusicSearchTrack: Identifiable, Equatable, Sendable {
         artists.isEmpty ? "Unknown artist" : artists.joined(separator: ", ")
     }
 
+    public var radioQueueIdentifier: String {
+        album.map { "\(id):\($0.id)" } ?? id
+    }
+
     public init(
         id: String, title: String, artists: [String],
         durationMilliseconds: Int?, coverURI: String? = nil,
@@ -36,10 +40,14 @@ public struct MusicSearchTrack: Identifiable, Equatable, Sendable {
 public struct MusicSearchArtist: Identifiable, Equatable, Sendable {
     public let id: String
     public let name: String
+    public let coverURI: String?
 
-    public init(id: String, name: String) {
+    public var coverURL: URL? { MusicArtworkURL.validatedURL(from: coverURI) }
+
+    public init(id: String, name: String, coverURI: String? = nil) {
         self.id = id
         self.name = name
+        self.coverURI = coverURI
     }
 }
 
@@ -148,7 +156,10 @@ public struct YandexMusicSearchProvider: Sendable {
                   let name = artist.name?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !name.isEmpty, artist.available != false,
                   seen.insert(normalized).inserted else { return nil }
-            return MusicSearchArtist(id: normalized, name: String(name.prefix(200)))
+            let coverURI = artist.cover?.uri ?? artist.opImage ?? artist.ogImage
+            return MusicSearchArtist(
+                id: normalized, name: String(name.prefix(200)), coverURI: coverURI
+            )
         }.prefix(20).map { $0 }
     }
 
@@ -372,6 +383,13 @@ public struct YandexMusicSearchProvider: Sendable {
         let id: StringOrNumber?
         let name: String?
         let available: Bool?
+        let cover: ArtistCover?
+        let opImage: String?
+        let ogImage: String?
+    }
+
+    private struct ArtistCover: Decodable {
+        let uri: String?
     }
 
     private struct ArtistAlbumEnvelope: Decodable {
