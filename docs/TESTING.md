@@ -71,10 +71,10 @@ Do not perform additional manual tests for this legacy probe.
 
 ## Historical limitations
 
-This archived prerelease did not contain account login, a native
-streaming engine, My Wave, search or media-key support. Current
-functionality is documented in the v0.4.0 release notes above.
-The old embed probe must not be used as a test for full-track playback.
+This archived prerelease did not contain account login or a native
+streaming engine. Current functionality is documented in the recent
+versioned release notes. The old embed probe must not be used as a test
+for full-track playback.
 
 ## Explore, Search and Player acceptance matrix (v0.5.6)
 
@@ -86,10 +86,15 @@ Source inspection does not count as a completed on-device interaction test.
 | --- | --- |
 | Sign in | Hover, pressed, code request, Copy, Open sign-in page, Cancel, retry on failure |
 | Sign out | Hover, pressed, visible transition, player cancellation, Keychain removal and signed-out state |
-| Search | All/Songs/Artists/Albums scope, scroll artist discography, load more albums, open album track list and return, click playing track artist/album links, keep mouse/keyboard navigation responsive, empty input, errors, rapid queries |
-| Track rows | Hover, pressed, selecting during playback, rapid selection, long text truncation, keyboard focus and VoiceOver |
+| Explore | History loading, refresh and empty/error states; latest item replay; recent-list selection; no autoplay; Explore remains useful without history |
+| My Wave | Explicit start only; authenticated session; first track starts only after stream is ready; pause/resume; skip feedback; next batch and automatic continuation; rate limit, empty session and expired-session errors |
+| Search | Separate screen; Songs/Albums/Artists categories; debounce, submit, clear, empty input, errors and rapid queries; scroll; query/category preserved when navigating back |
+| Catalog navigation | Large artist/album artwork; compact song rows; artist popular tracks and discography; album track order; Play album; nested Back; click artist/album from Player |
+| Mini-player | Remains visible in Search; play/pause/next while pointer is over results; opens the full Player without stopping playback |
+| Player | Full controls, cover, clickable artist/album metadata, back navigation and continuity while browsing |
+| Track rows | Hover/pressed feedback, selecting during playback, rapid selection, long-text truncation, keyboard focus and VoiceOver |
 | Play/Pause | Hover, pressed, icon change, buffering, play/resume/stop/replay, stale-source renewal |
-| Previous/Next | Disabled boundary, previous after 3 seconds, prev/next during playback, automatic queue advancement |
+| Previous/Next | Disabled boundary, previous after 3 seconds, prev/next during playback, automatic catalog and My Wave queue advancement |
 | Stop/Seek/Volume | Disabled and active states, scrubbing, pause/resume after seek, clamp volume to [0,1] |
 | Quit | Hover, pressed, application exits and playback stops |
 | Accessibility | Reduce Motion, Reduce Transparency, keyboard navigation, focus, accessible labels |
