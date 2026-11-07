@@ -723,7 +723,7 @@ final class MusicSignInModel {
     }
 
     func skipNext() {
-        guard case .signedIn = status, let index = currentQueueIndex else { return }
+        guard case .signedIn = status, currentQueueIndex != nil else { return }
         if isMyWaveActive, let currentTrack {
             sendMyWaveFeedback(
                 .skip, track: currentTrack,
