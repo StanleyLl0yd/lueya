@@ -86,6 +86,7 @@ final class MusicSignInModel {
     @ObservationIgnored private var exploreTask: Task<Void, Never>?
     @ObservationIgnored private var exploreGeneration: UInt64 = 0
     @ObservationIgnored private var myWaveTask: Task<Void, Never>?
+    @ObservationIgnored private var myWaveFeedbackTask: Task<Void, Never>?
     @ObservationIgnored private var myWaveGeneration: UInt64 = 0
     @ObservationIgnored private var myWaveSessionID: String?
     @ObservationIgnored private var myWaveBatchByTrackID: [String: String] = [:]
@@ -291,6 +292,8 @@ final class MusicSignInModel {
         myWaveGeneration &+= 1
         myWaveTask?.cancel()
         myWaveTask = nil
+        myWaveFeedbackTask?.cancel()
+        myWaveFeedbackTask = nil
         myWaveSessionID = nil
         myWaveBatchByTrackID = [:]
         myWaveQueueIdentifiers = []
@@ -308,11 +311,14 @@ final class MusicSignInModel {
         isLoadingMyWaveBatch = true
         let generation = myWaveGeneration
         let queue = myWaveQueueIdentifiers
+        let pendingFeedback = myWaveFeedbackTask
         myWaveTask = Task {
             defer {
                 if generation == myWaveGeneration { isLoadingMyWaveBatch = false }
             }
             do {
+                await pendingFeedback?.value
+                try Task.checkCancellation()
                 guard let token = try await session.validAccessToken() else {
                     throw MusicExploreError.invalidToken
                 }
@@ -324,9 +330,12 @@ final class MusicSignInModel {
                       case .signedIn = status else { return }
                 let known = Set(playQueue.map(\.id))
                 let newTracks = batch.tracks.filter { !known.contains($0.id) }
+                var seenQueueIDs = Set<String>()
                 myWaveQueueIdentifiers = Array(
-                    Set(myWaveQueueIdentifiers + batch.queueIdentifiers)
-                ).sorted()
+                    (myWaveQueueIdentifiers + batch.queueIdentifiers).filter {
+                        seenQueueIDs.insert($0).inserted
+                    }.suffix(100)
+                )
                 if let batchID = batch.batchID {
                     for track in newTracks { myWaveBatchByTrackID[track.id] = batchID }
                 }
@@ -362,11 +371,16 @@ final class MusicSignInModel {
         let generation = myWaveGeneration
         let batchID = track.flatMap { myWaveBatchByTrackID[$0.id] }
         let identifier = track?.radioQueueIdentifier
-        Task {
+        let previousFeedback = myWaveFeedbackTask
+        myWaveFeedbackTask = Task { [weak self] in
+            await previousFeedback?.value
+            guard let self, generation == self.myWaveGeneration,
+                  self.myWaveSessionID == sessionID else { return }
             do {
-                guard let token = try await session.validAccessToken() else { return }
-                guard generation == myWaveGeneration, myWaveSessionID == sessionID else { return }
-                try await exploreProvider.sendFeedback(
+                guard let token = try await self.session.validAccessToken() else { return }
+                guard generation == self.myWaveGeneration,
+                      self.myWaveSessionID == sessionID else { return }
+                try await self.exploreProvider.sendFeedback(
                     sessionID: sessionID, event: event,
                     trackIdentifier: identifier, totalPlayedSeconds: totalPlayedSeconds,
                     batchID: batchID, accessToken: token
@@ -401,8 +415,9 @@ final class MusicSignInModel {
     private func advanceQueueOrFetchWave() {
         guard let index = currentQueueIndex else { return }
         if playQueue.indices.contains(index + 1) {
-            let nextIndex = index + 1
-            currentQueueIndex = nextIndex
+            currentQueueIndex = index + 1
+            trimMyWaveQueueIfNeeded()
+            guard let nextIndex = currentQueueIndex else { return }
             loadTrack(playQueue[nextIndex])
             if myWaveSessionID != nil && playQueue.count - nextIndex <= 3 {
                 loadMoreMyWaveBatch(playImmediately: false)
@@ -711,6 +726,18 @@ final class MusicSignInModel {
         searchResults = previousSearchTracks
         previousSearchTracks = []
         searchStatus = .ready
+    }
+
+    private func trimMyWaveQueueIfNeeded() {
+        guard isMyWaveActive, let index = currentQueueIndex, index > 50 else { return }
+        let dropCount = index - 25
+        guard dropCount > 0 else { return }
+        playQueue.removeFirst(dropCount)
+        currentQueueIndex = index - dropCount
+        let retainedTrackIDs = Set(playQueue.map(\.id))
+        myWaveBatchByTrackID = myWaveBatchByTrackID.filter {
+            retainedTrackIDs.contains($0.key)
+        }
     }
 
     func play(_ selected: MusicSearchTrack) {
