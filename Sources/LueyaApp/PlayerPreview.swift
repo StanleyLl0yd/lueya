@@ -234,7 +234,7 @@ struct PlayerPreview: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-            if activeScreen == .search, signIn.currentTrack != nil {
+            if activeScreen == .search {
                 miniPlayer
             }
 
@@ -399,6 +399,17 @@ struct PlayerPreview: View {
                     }
                     .buttonStyle(QuietGlassButtonStyle(surface: .filled))
                     .disabled(signIn.currentTrack?.id == track.id && isCurrentTrackLoading)
+                    if signIn.currentTrack?.id == track.id {
+                        Button {
+                            push(.player)
+                        } label: {
+                            Label("Open player", systemImage: "waveform")
+                                .font(.system(size: 10, weight: .medium))
+                                .padding(.horizontal, 8)
+                                .frame(height: 27)
+                        }
+                        .buttonStyle(QuietGlassButtonStyle(surface: .text))
+                    }
                 }
                 Spacer(minLength: 0)
             }
