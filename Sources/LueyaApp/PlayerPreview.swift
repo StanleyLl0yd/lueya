@@ -274,13 +274,6 @@ struct PlayerPreview: View {
                     .tracking(1.4)
                     .foregroundStyle(secondary)
                 Spacer()
-                Button(action: openSearch) {
-                    Label("Search", systemImage: "magnifyingglass")
-                        .font(.system(size: 11, weight: .medium))
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
-                }
-                .buttonStyle(QuietGlassButtonStyle(surface: .subtle))
             }
 
             Button(action: openSearch) {
@@ -365,7 +358,8 @@ struct PlayerPreview: View {
 
     private func featuredTrackCard(_ track: MusicSearchTrack) -> some View {
         VStack(alignment: .leading, spacing: 9) {
-            sectionHeading(signIn.currentTrack?.id == track.id ? "NOW PLAYING" : "LAST LISTENED")
+            sectionHeading(signIn.currentTrack?.id == track.id &&
+                signIn.playback.status == .playing ? "NOW PLAYING" : "LAST LISTENED")
             HStack(spacing: 13) {
                 ArtworkThumbnail(url: track.coverURL, size: 82, symbol: "waveform")
                 VStack(alignment: .leading, spacing: 5) {
@@ -404,6 +398,7 @@ struct PlayerPreview: View {
                         .frame(height: 27)
                     }
                     .buttonStyle(QuietGlassButtonStyle(surface: .filled))
+                    .disabled(signIn.currentTrack?.id == track.id && !canPlay)
                 }
                 Spacer(minLength: 0)
             }
@@ -524,10 +519,10 @@ struct PlayerPreview: View {
                 }
             }
 
-            if signIn.selectedArtist != nil {
-                artistDetail
-            } else if signIn.selectedAlbum != nil {
+            if signIn.selectedAlbum != nil {
                 albumDetail
+            } else if signIn.selectedArtist != nil {
+                artistDetail
             } else {
                 searchField
                 HStack(spacing: 7) {
@@ -1115,61 +1110,6 @@ struct PlayerPreview: View {
         }
     }
 
-    private var statusPhase: Int {
-        switch signIn.status {
-        case .restoring: 0
-        case .signedOut: 1
-        case .requestingCode, .awaitingAuthorization: 2
-        case .signedIn: 3
-        case .signingOut: 4
-        case .failed: 5
-        }
-    }
-
-    private var playIcon: String {
-        switch signIn.playback.status {
-        case .playing, .connecting: return "pause.fill"
-        default: return "play.fill"
-        }
-    }
-
-    private var playLabel: String {
-        switch signIn.playback.status {
-        case .playing, .connecting: return "Pause"
-        case .paused: return "Resume"
-        case .finished: return "Replay"
-        default: return "Play"
-        }
-    }
-
-    private var canPlay: Bool {
-        guard signIn.currentTrack != nil else { return false }
-        if case .verified = signIn.sourceProbe { return true }
-        return false
-    }
-
-    private var playbackHasError: Bool {
-        if case .failed = signIn.playback.status { return true }
-        return signIn.playback.status == .idle
-    }
-
-    private func performSearch() {
-        searchDebounceTask?.cancel()
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            showingResults = false
-            signIn.resetSearch()
-            return
-        }
-        showingResults = true
-        switch searchScope {
-        case .all: signIn.searchAll(query)
-        case .songs: signIn.searchTracks(query)
-        case .artists: signIn.searchArtists(query)
-        case .albums: signIn.searchAlbums(query)
-        }
-    }
-
-    /// Public thumbnail only. Ephemeral session, no redirects, cookies or disk cache.
     private func artwork(isPlaying: Bool) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -1330,6 +1270,7 @@ private struct ArtworkThumbnail: View {
     }
 }
 
+@MainActor
 private enum SafeArtworkLoader {
     static func load(_ url: URL?, maximumPixelSize: Int) async -> NSImage? {
         guard let url,
