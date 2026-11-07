@@ -21,7 +21,7 @@ final class YandexMusicExploreProviderTests: XCTestCase {
         """
         let provider = YandexMusicExploreProvider(transport: StubTransport(
             path: "/music-history", method: "GET", body: body,
-            expectedQuery: "full_models_count=8"
+            expectedQuery: "fullModelsCount=8"
         ))
         let tracks = try await provider.recentTracks(accessToken: "my-test-token", limit: 8)
         XCTAssertEqual(tracks.map(\.id), ["701", "702"])
@@ -117,7 +117,7 @@ final class YandexMusicExploreProviderTests: XCTestCase {
         let redirected = StubTransport(
             path: "/music-history", method: "GET",
             body: #"{"result":{"historyTabs":[]}}"#,
-            responseURL: "https://evil.example/music-history?full_models_count=8"
+            responseURL: "https://evil.example/music-history?fullModelsCount=8"
         )
         do {
             _ = try await YandexMusicExploreProvider(transport: redirected)
