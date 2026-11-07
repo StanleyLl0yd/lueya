@@ -160,6 +160,7 @@ final class YandexMusicExploreProviderTests: XCTestCase {
             XCTAssertEqual(request.httpMethod, method)
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "OAuth my-test-token")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Yandex-Music-Client"), "YandexMusicAndroid/24023621")
             if let expectedBodyContains {
                 let text = String(data: request.httpBody ?? Data(), encoding: .utf8) ?? ""
                 XCTAssertTrue(text.contains(expectedBodyContains), text)
