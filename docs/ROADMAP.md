@@ -19,7 +19,7 @@
 - [x] Confirm user-owned macOS v0.3.1 has real audible playback beyond 30 seconds (screen shows 1:17/4:09)
 - [ ] Prove natural track completion, seek, pause, expiry and network recovery on physical Mac; owner confirmed v0.4.1 audio works, but no per-scenario proof yet
 - [ ] Review third-party streaming/distribution rights before M0 go/no-go
-- [ ] Decide whether My Wave/Ynison/queues can be supported safely and legally
+- [ ] Validate the experimental My Wave radio session and listening-history integration against current provider behavior and terms; no DRM bypass or offline media
 - [ ] Resolve outstanding M0 audit findings, perform full repository-wide verification and explicit go/no-go (#1)
 
 M0 remains blocked on provider permission, full end-to-end completion
@@ -42,7 +42,7 @@ Exit: tested, functional, stable native app foundation.
 
 - [ ] Implement authorized provider integration
 - [ ] Play/pause/next/previous, metadata, artwork, media keys
-- [ ] Validate v0.5.5 artist discography, album catalog navigation, linked player metadata and scrollable result selection, cover artwork, queue and saved-session continuity on the owner's Mac; liked tracks and My Wave remain future work subject to permission
+- [ ] Validate v0.5.6 Explore history, My Wave start/skip/feedback/next-batch behavior, category search, mini-player navigation, artwork, artist/album links, audio continuity and Keychain restore on the owner's Mac
 - [ ] Session expiration, errors, recovery
 
 Exit: reproducible permitted end-to-end music playback.
@@ -73,9 +73,9 @@ audits, PR merges, further releases and planning until the owner provides
 feedback about that exact build. The feedback, including a negative bug
 report, automatically authorizes the next complete repair-and-release
 cycle; **no separate permission to publish is required**. Feedback does
-not mean milestone acceptance. The published v0.5.4 received feedback requesting album browsing,
+not mean milestone acceptance. The published v0.5.5 received feedback requesting an Explore home, account listening history,
 artist discographies and linked player metadata; next signed
-test version is v0.5.5, published only after exact-head CI and package/signing
+test version is v0.5.6, published only after exact-head CI and package/signing
 verification. The guarded, one-shot merge marker prevents unrelated pushes
 from triggering a release.
 

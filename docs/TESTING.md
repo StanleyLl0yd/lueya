@@ -4,7 +4,7 @@
 probe is discontinued by project decision. This page documents the
 previous preview only. The current API-first plan is
 [here](M0-API-FEASIBILITY.md). The historical OAuth experiment is documented [here](AUTH-RESEARCH-RELEASE-NOTES.md).
-The current feedback-driven signed test candidate is [v0.5.5](releases/v0.5.5.md).
+The current feedback-driven signed test candidate is [v0.5.6](releases/v0.5.6.md).
 Use the current release for M0 audio tests; the old embed tests below are
 preserved as historical evidence only.
 
@@ -76,7 +76,7 @@ streaming engine, My Wave, search or media-key support. Current
 functionality is documented in the v0.4.0 release notes above.
 The old embed probe must not be used as a test for full-track playback.
 
-## Player interaction acceptance matrix (v0.5.5)
+## Explore, Search and Player acceptance matrix (v0.5.6)
 
 This is the developer's verification scope, **not an end-user button-by-button checklist**.
 The owner is expected to assess the overall build; the developer owns regressions.

@@ -3,6 +3,25 @@
 From v0.1.0 onward, public versions follow [Semantic Versioning](https://semver.org/).
 Every version has release notes in [docs/releases](docs/releases).
 
+## [0.5.6] — Explore, My Wave and a dedicated search experience
+
+- Replace the empty player-first start with Explore: recent account listening,
+  a clear replay action and a one-tap personalized My Wave radio start.
+- Read recent tracks from the authenticated music-history endpoint; no local
+  listening catalog or OAuth data is persisted outside Keychain.
+- Add a bounded My Wave session queue, next-batch loading and playback feedback
+  (radio started, track started, track finished and skip) so recommendations
+  can respond to actual listening.
+- Move search to its own screen with Songs, Albums and Artists categories.
+  Keep the mini-player available while browsing and provide a separate full
+  Player screen.
+- Use larger validated artwork for albums/artists and compact artwork rows for
+  songs; retain the warm glass visual language and reduced-motion behavior.
+- Keep autoplay disabled on launch; playback starts only after an explicit action.
+- Add synthetic history, radio-session, paging, feedback, malformed-ID and
+  cross-origin regression tests. Live-account API compatibility remains for
+  owner testing.
+
 ## [0.5.5] — artist discographies and linked albums
 
 - Add album matches to the unified catalog search and an Albums filter.

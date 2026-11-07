@@ -13,15 +13,16 @@ quiet listening and a compact menu-bar experience. Independent and unofficial.
 - Sign in to your own Yandex account using a code and the official login page.
 - Restore and end sessions securely via macOS Keychain.
 - Native online AAC/MP3 playback with Play/Pause, Stop, Seek, Volume and limited signed-source renewal.
-- Authenticated song, artist and album search, artist discographies, album track lists and a temporary in-memory next/previous queue.
+- Explore home with account listening history and Yandex Music My Wave personal radio; separate Songs/Albums/Artists search, artist discographies, full album track lists and an in-memory playback queue.
 
-**v0.5.5 follows the owner's v0.5.5 feedback.** Artists now have a browsable
-discography alongside their popular tracks. Search also includes albums, and
-you can open the artist or album of a playing song right from the player.
-Opening an album shows its songs in disc order, with Back to return to where
-you came from. The catalog is still light and scrollable; the saved session,
-playback engine and warm menu-bar design are unchanged. Real-service catalog
-responses and navigation remain subject to owner testing.
+**v0.5.6 reshapes the listening experience.** Explore opens with your recent
+Yandex Music listening history and a one-tap start for My Wave, the service's
+personalized radio. Search now lives on its own screen, with separate Songs,
+Albums and Artists categories, generous artwork for albums and artists, and a
+compact mini-player that stays available while browsing. Artist and album
+pages remain connected, and the full player has its own screen. Nothing starts
+playing automatically. My Wave recommendations and history depend on the
+signed-in account and the provider's current API availability.
 
 ## Download
 
@@ -29,13 +30,13 @@ responses and navigation remain subject to owner testing.
 That feedback authorizes the next repair-and-release cycle without a separate
 version-specific approval; feedback is not acceptance.
 
-**[Download lueya 0.5.5 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.5/lueya-0.5.5-macos-arm64.zip)**
+**[Download lueya 0.5.6 for macOS (ZIP)](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.6/lueya-0.5.6-macos-arm64.zip)**
 
-[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.5/SHA256SUMS.txt) ·
+[Verify SHA-256](https://github.com/StanleyLl0yd/lueya/releases/download/v0.5.6/SHA256SUMS.txt) ·
 [All releases](https://github.com/StanleyLl0yd/lueya/releases)
 
 Requires an **Apple Silicon Mac** running **macOS 26 or later** (macOS 27
-supported). The v0.5.5 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
+supported). The v0.5.6 distribution is signed with a persistent self-signed research certificate, but not notarized or Developer ID-signed by Apple.
 macOS may block launch; after verifying the checksum, use
 System Settings → Privacy & Security → Open Anyway *if offered*.
 Do not disable Gatekeeper.
